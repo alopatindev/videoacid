@@ -1,6 +1,11 @@
 package com.alopatindev.videoacid.ui
 
+import android.content.Context
+import android.opengl.GLSurfaceView
+
 class MainView(context: Context) extends GLSurfaceView(context) {
+
+  import android.view.SurfaceHolder
 
   private val renderer = new MainRenderer(this)
 
@@ -13,7 +18,7 @@ class MainView(context: Context) extends GLSurfaceView(context) {
   }
  
   override def surfaceDestroyed(holder: SurfaceHolder): Unit = {
-    mRenderer.close()
+    renderer.close()
     super.surfaceDestroyed(holder)
   }
  

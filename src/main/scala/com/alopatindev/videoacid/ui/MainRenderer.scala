@@ -1,19 +1,26 @@
 package com.alopatindev.videoacid.ui
 
 import android.graphics.SurfaceTexture
-import android.graphics.SurfaceTexture.SurfaceTexture.OnFrameAvailableListener
-import android.opengl.EGLConfig
+import android.graphics.SurfaceTexture.OnFrameAvailableListener
+import android.hardware.Camera
 import android.opengl.GLSurfaceView
+import android.opengl.GLES11Ext
 import android.opengl.GLES20
+
+import scala.util.Try
 
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
+import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
-class MainRenderer(val view: MainView) extends Any
+class MainRenderer(val view: MainView) extends Object
                                        with GLSurfaceView.Renderer
                                        with SurfaceTexture.OnFrameAvailableListener {
+
+  import com.alopatindev.videoacid.Logs._
+
   private lazy val vss =
       "attribute vec2 vPosition;\n" +
       "attribute vec2 vTexCoord;\n" +
@@ -50,7 +57,7 @@ class MainRenderer(val view: MainView) extends Any
   def close(): Unit = {
     surfaceDirty = false
     surfaceTexture foreach { _.release() }
-    camera.stopPreview()
+    camera foreach { _.stopPreview() }
     camera = None
     deleteTex()
   }
@@ -64,9 +71,8 @@ class MainRenderer(val view: MainView) extends Any
     surfaceTexture foreach { _.setOnFrameAvailableListener(this) }
 
     camera = Some(Camera.open())
-    try {
+    Try {
       camera foreach { cam => surfaceTexture foreach { cam.setPreviewTexture(_) } }
-    } catch(IOException ioe) {
     }
 
     GLES20.glClearColor(1.0f, 1.0f, 0.0f, 1.0f)
@@ -103,7 +109,8 @@ class MainRenderer(val view: MainView) extends Any
  
   override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
     GLES20.glViewport(0, 0, width, height)
-    Camera.Parameters param = camera.getParameters()
+    val cam = camera.get
+    val param = cam.getParameters()
     val psize = param.getSupportedPreviewSizes()
     val sizes = for {
       i <- 0 until psize.size()
@@ -113,8 +120,7 @@ class MainRenderer(val view: MainView) extends Any
     val size = sizes.last
     param.setPreviewSize(size.width, size.height)
     param.set("orientation", "landscape")
-    camera.setParameters(param)
-    camera.startPreview()
+    camera foreach { cam => cam.setParameters(param); cam.startPreview() }
   }
  
   private def initTex(): Array[Int] = {
@@ -141,22 +147,22 @@ class MainRenderer(val view: MainView) extends Any
     var vshader: Int = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER)
     GLES20.glShaderSource(vshader, vss)
     GLES20.glCompileShader(vshader)
-    val compiled = Array(0)
+    var compiled = Array(0)
     GLES20.glGetShaderiv(vshader, GLES20.GL_COMPILE_STATUS, compiled, 0)
     if(compiled(0) == 0) {
-      Log.e("Shader", "Could not compile vshader")
-      Log.v("Shader", "Could not compile vshader:"+GLES20.glGetShaderInfoLog(vshader))
+      loge("Could not compile vshader")
+      logd("Could not compile vshader:"+GLES20.glGetShaderInfoLog(vshader))
       GLES20.glDeleteShader(vshader)
       vshader = 0
     }
   
-    val fshader: Int = GLES20.glCreateShader(GLES20.GL_FRAGMENT_SHADER)
+    var fshader: Int = GLES20.glCreateShader(GLES20.GL_FRAGMENT_SHADER)
     GLES20.glShaderSource(fshader, fss)
     GLES20.glCompileShader(fshader)
     GLES20.glGetShaderiv(fshader, GLES20.GL_COMPILE_STATUS, compiled, 0)
-    if(compiled(0) == 0) {
-      Log.e("Shader", "Could not compile fshader")
-      Log.v("Shader", "Could not compile fshader:"+GLES20.glGetShaderInfoLog(fshader))
+    if (compiled(0) == 0) {
+      loge("Could not compile fshader")
+      logd("Could not compile fshader:"+GLES20.glGetShaderInfoLog(fshader))
       GLES20.glDeleteShader(fshader)
       fshader = 0
     }

@@ -11,8 +11,10 @@ import scala.util.Try
 class MainActivity extends Activity with TypedFindView with ActivityUtils {
 
   import android.os.Bundle
+  import android.view.Window
+  import com.alopatindev.videoacid.Logs._
 
-  private val mainView = new MainView(this)
+  private lazy val mainView = new MainView(this)
 
   override def onCreate(bundle: Bundle): Unit = {
     logd("MainActivity.onCreate")
