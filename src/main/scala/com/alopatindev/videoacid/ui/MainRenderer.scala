@@ -70,8 +70,8 @@ class MainRenderer(val view: MainView) extends Object
     surfaceTexture = Some(new SurfaceTexture(hTex(0)))
     surfaceTexture foreach { _.setOnFrameAvailableListener(this) }
 
-    camera = Some(Camera.open())
     Try {
+      camera = Some(Camera.open())
       camera foreach { cam => surfaceTexture foreach { cam.setPreviewTexture(_) } }
     }
 
@@ -109,18 +109,23 @@ class MainRenderer(val view: MainView) extends Object
  
   override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
     GLES20.glViewport(0, 0, width, height)
-    val cam = camera.get
-    val param = cam.getParameters()
-    val psize = param.getSupportedPreviewSizes()
-    val sizes = for {
-      i <- 0 until psize.size()
-      item = psize.get(i)
-      if (item.width < width || item.height < height)
-    } yield item
-    val size = sizes.last
-    param.setPreviewSize(size.width, size.height)
-    param.set("orientation", "landscape")
-    camera foreach { cam => cam.setParameters(param); cam.startPreview() }
+
+    camera foreach {
+      cam => {
+        val param = cam.getParameters()
+        val psize = param.getSupportedPreviewSizes()
+        val sizes = for {
+          i <- 0 until psize.size()
+          item = psize.get(i)
+          if (item.width < width || item.height < height)
+        } yield item
+        val size = sizes.last
+        param.setPreviewSize(size.width, size.height)
+        param.set("orientation", "landscape")
+        cam.setParameters(param)
+        cam.startPreview()
+      }
+    }
   }
  
   private def initTex(): Array[Int] = {
