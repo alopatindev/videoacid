@@ -1,0 +1,110 @@
+# Project-specific
+*dont_commit*
+
+# Scala
+# -----
+
+*.class
+*.log
+.classpath
+.project
+tags
+
+# sbt specific
+.cache/
+.history/
+.lib/
+bin/
+lib/
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+project/target/
+project/project/
+
+# IntelliJ IDEA
+.idea
+
+# Scala-IDE specific
+.scala_dependencies
+.worksheet
+.settings
+
+# Android Scala Plugin
+proguard-sbt.txt
+
+
+# Python
+# ------
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+
+.history
+*.swp
+tags
+build.xml
+libs
+proguard-project.txt
+bin
+gen
+local.properties
+project.properties
+obj
+ant.properties
+src/main/res/drawable-*/
+src/main/com/sbar/smsnenado/BuildEnv.scala
+src/main/assets/api-cert.pem
