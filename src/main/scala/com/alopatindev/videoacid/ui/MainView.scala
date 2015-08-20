@@ -1,27 +1,24 @@
 package com.alopatindev.videoacid.ui
 
-class MainView extends GLSurfaceView {
+class MainView(context: Context) extends GLSurfaceView(context) {
 
   private val renderer = new MainRenderer(this)
 
-  def this(context: Context) = {
-    super(context)
-    setEGLContextClientVersion(2)
-    setRenderer(renderer)
-    setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY)
-  }
+  setEGLContextClientVersion(2)
+  setRenderer(renderer)
+  setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY)
 
-  def surfaceCreated(SurfaceHolder holder): Unit = {
-    super.surfaceCreated(holder);
+  override def surfaceCreated(holder: SurfaceHolder): Unit = {
+    super.surfaceCreated(holder)
   }
  
-  def surfaceDestroyed(SurfaceHolder holder): Unit = {
-    mRenderer.close();
-    super.surfaceDestroyed(holder);
+  override def surfaceDestroyed(holder: SurfaceHolder): Unit = {
+    mRenderer.close()
+    super.surfaceDestroyed(holder)
   }
  
-  def surfaceChanged(SurfaceHolder holder, int format, int w, int h): Unit = {
-    super.surfaceChanged(holder, format, w, h);
+  override def surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int): Unit = {
+    super.surfaceChanged(holder, format, width, height)
   }
 
 }

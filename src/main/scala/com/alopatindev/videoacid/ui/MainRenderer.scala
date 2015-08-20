@@ -11,7 +11,8 @@ import java.nio.ByteOrder
 import java.nio.FloatBuffer
 import javax.microedition.khronos.opengles.GL10
 
-class MainRenderer(val view: MainView) with GLSurfaceView.Renderer
+class MainRenderer(val view: MainView) extends Any
+                                       with GLSurfaceView.Renderer
                                        with SurfaceTexture.OnFrameAvailableListener {
   private lazy val vss =
       "attribute vec2 vPosition;\n" +
@@ -37,7 +38,7 @@ class MainRenderer(val view: MainView) with GLSurfaceView.Renderer
   private var camera: Option[Camera] = None
   private var surfaceTexture: Option[SurfaceTexture] = None
  
-  private @volatile var surfaceDirty = false
+  @volatile private var surfaceDirty = false
 
   val pVertex: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
   val pTexCoord: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
@@ -54,7 +55,7 @@ class MainRenderer(val view: MainView) with GLSurfaceView.Renderer
     deleteTex()
   }
  
-  def onSurfaceCreated(unused: GL10, config: EGLConfig): Unit = {
+  override def onSurfaceCreated(unused: GL10, config: EGLConfig): Unit = {
     //String extensions = GLES20.glGetString(GLES20.GL_EXTENSIONS)
     //Log.i("mr", "Gl extensions: " + extensions)
     //Assert.assertTrue(extensions.contains("OES_EGL_image_external"))
@@ -73,7 +74,7 @@ class MainRenderer(val view: MainView) with GLSurfaceView.Renderer
     //hProgram = loadShader(vss, fss)
   }
  
-  def onDrawFrame(unused: GL10): Unit = {
+  override def onDrawFrame(unused: GL10): Unit = {
     GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
   
     if (surfaceDirty) {
@@ -100,7 +101,7 @@ class MainRenderer(val view: MainView) with GLSurfaceView.Renderer
     GLES20.glFlush()
   }
  
-  def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
+  override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
     GLES20.glViewport(0, 0, width, height)
     Camera.Parameters param = camera.getParameters()
     val psize = param.getSupportedPreviewSizes()
@@ -131,7 +132,7 @@ class MainRenderer(val view: MainView) with GLSurfaceView.Renderer
     GLES20.glDeleteTextures(1, hTex, 0)
   }
  
-  def onFrameAvailable(st: SurfaceTexture): Unit = {
+  override def onFrameAvailable(st: SurfaceTexture): Unit = {
     surfaceDirty = true
     view.requestRender()
   }

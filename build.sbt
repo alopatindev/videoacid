@@ -1,7 +1,7 @@
 android.Plugin.androidBuild
 
-name := "smsnenado"
-version := "1.1.2"
+name := "videoacid"
+version := "0.0.1"
 
 scalaVersion := "2.11.7"
 scalacOptions in ThisBuild ++= Seq("-unchecked", "-deprecation")
