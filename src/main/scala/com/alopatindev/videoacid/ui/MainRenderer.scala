@@ -3,6 +3,7 @@ package com.alopatindev.videoacid.ui
 import android.graphics.SurfaceTexture
 import android.graphics.SurfaceTexture.OnFrameAvailableListener
 import android.hardware.Camera
+import android.hardware.Camera._
 import android.opengl.GLSurfaceView
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
@@ -39,8 +40,8 @@ class MainRenderer(val view: MainView) extends Object
       "  gl_FragColor = texture2D(sTexture,texCoord);\n" +
       "}"
 
-  private lazy val hTex: Array[Int] = initTex()
-  private lazy val hProgram: Int = loadShader(vss, fss)
+  private val hTex: Array[Int] = Array(0)
+  private var hProgram: Int = 0
  
   private var camera: Option[Camera] = None
   private var surfaceTexture: Option[SurfaceTexture] = None
@@ -57,16 +58,16 @@ class MainRenderer(val view: MainView) extends Object
   def close(): Unit = {
     surfaceDirty = false
     surfaceTexture foreach { _.release() }
-    camera foreach { _.stopPreview() }
+    camera foreach { cam => {
+      cam.stopPreview()
+      cam.release()
+    }}
     camera = None
     deleteTex()
   }
  
   override def onSurfaceCreated(unused: GL10, config: EGLConfig): Unit = {
-    //String extensions = GLES20.glGetString(GLES20.GL_EXTENSIONS)
-    //Log.i("mr", "Gl extensions: " + extensions)
-    //Assert.assertTrue(extensions.contains("OES_EGL_image_external"))
-        
+    initTex()
     surfaceTexture = Some(new SurfaceTexture(hTex(0)))
     surfaceTexture foreach { _.setOnFrameAvailableListener(this) }
 
@@ -77,7 +78,7 @@ class MainRenderer(val view: MainView) extends Object
 
     GLES20.glClearColor(1.0f, 1.0f, 0.0f, 1.0f)
   
-    //hProgram = loadShader(vss, fss)
+    hProgram = loadShader(vss, fss)
   }
  
   override def onDrawFrame(unused: GL10): Unit = {
@@ -110,33 +111,30 @@ class MainRenderer(val view: MainView) extends Object
   override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
     GLES20.glViewport(0, 0, width, height)
 
-    camera foreach {
-      cam => {
-        val param = cam.getParameters()
-        val psize = param.getSupportedPreviewSizes()
-        val sizes = for {
-          i <- 0 until psize.size()
-          item = psize.get(i)
-          if (item.width < width || item.height < height)
-        } yield item
-        val size = sizes.last
-        param.setPreviewSize(size.width, size.height)
-        param.set("orientation", "landscape")
-        cam.setParameters(param)
-        cam.startPreview()
-      }
-    }
+    camera foreach { cam => {
+      val param = cam.getParameters()
+      val psize = param.getSupportedPreviewSizes()
+      val sizes = for {
+        i <- 0 until psize.size()
+        item = psize.get(i)
+        if (item.width < width || item.height < height)
+      } yield item
+      val size = sizes.last
+      param.setPreviewSize(size.width, size.height)
+      param.set("orientation", "landscape")
+      param.setFocusMode("continuous-video")
+      cam.setParameters(param)
+      cam.startPreview()
+    }}
   }
  
-  private def initTex(): Array[Int] = {
-    val hTex = Array(0)
+  private def initTex(): Unit = {
     GLES20.glGenTextures(1, hTex, 0)
     GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, hTex(0))
     GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
     GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
     GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST)
     GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST)
-    hTex
   }
  
   private def deleteTex(): Unit = {

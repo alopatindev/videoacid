@@ -16,10 +16,7 @@ class MainActivity extends Activity with TypedFindView with ActivityUtils {
   import android.view.WindowManager
   import com.alopatindev.videoacid.Logs._
 
-  private lazy val mainView = new MainView(this)
-  private lazy val wakeLock = getSystemService(Context.POWER_SERVICE)
-    .asInstanceOf[PowerManager]
-    .newWakeLock(PowerManager.FULL_WAKE_LOCK, "WakeLock");
+  private lazy val view = new MainView(this)
 
   override def onCreate(bundle: Bundle): Unit = {
     logd("MainActivity.onCreate")
@@ -28,9 +25,8 @@ class MainActivity extends Activity with TypedFindView with ActivityUtils {
 
     getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
     getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-    wakeLock.acquire();
 
-    setContentView(mainView)
+    setContentView(view)
   }
 
   override def onDestroy(): Unit = {
@@ -40,25 +36,18 @@ class MainActivity extends Activity with TypedFindView with ActivityUtils {
 
   override def onPause(): Unit = {
     logd("onPause 1")
-    if (wakeLock.isHeld()) {
+    view.onPause()
     logd("onPause 2")
-      wakeLock.release()
-    }
-    logd("onPause 3")
-    mainView.onPause()
-    logd("onPause 4")
     super.onPause()
-    logd("onPause 5")
+    logd("onPause 3")
   }
 
   override def onResume(): Unit = {
     logd("onResume 1")
     super.onResume()
     logd("onResume 2")
-    mainView.onResume()
+    view.onResume()
     logd("onResume 3")
-    wakeLock.acquire()
-    logd("onResume 4")
   }
 
 }
