@@ -11,7 +11,8 @@ javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
 
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.4" % "test",
-  "com.android.support" % "support-v4" % "20.0.0"
+  "com.android.support" % "support-v4" % "20.0.0",
+  "io.reactivex" %% "rxscala" % "0.25.0"
 )
 
 // Repositories for dependencies

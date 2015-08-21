@@ -8,7 +8,12 @@ import android.opengl.GLSurfaceView
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
 
-import scala.util.Try
+import rx.lang.scala._
+
+import language.postfixOps
+
+import scala.concurrent.duration._
+import scala.util.{Random, Try}
 
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -37,7 +42,7 @@ class MainRenderer(val view: MainView) extends Object
       "uniform samplerExternalOES sTexture;\n" +
       "varying vec2 texCoord;\n" +
       "void main() {\n" +
-      "  gl_FragColor = texture2D(sTexture,texCoord);\n" +
+      "  gl_FragColor = texture2D(sTexture, texCoord);\n" +
       "}"
 
   private val hTex: Array[Int] = Array(0)
@@ -47,11 +52,29 @@ class MainRenderer(val view: MainView) extends Object
   private var surfaceTexture: Option[SurfaceTexture] = None
  
   @volatile private var surfaceDirty = false
+  val RAND_VERTS_UPDATE_INTERVAL = 2000L
+  val VERTS_UPDATE_INTERVAL = 30L
+  var nextRandVertsUpdateTime = 0L
+  var nextVertsUpdateTime = 0L
 
-  val pVertex: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
-  val pTexCoord: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
-  pVertex.put(Array(1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f))
-  pVertex.position(0)
+  lazy val rand = new Random()
+
+  private val pVertex: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
+  private val originalVerts = List(1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f)
+  private var nextRandVerts = originalVerts
+  private var currentVerts = originalVerts
+  updateVerts()
+
+  def approxVertsStep(current: List[Float], next: List[Float], step: Float = 0.001f): List[Float] =
+    (current zip next) map { case (c, n) => {
+      val acc = if (c < n) step else -step
+      val next = c + acc
+      val found = Math.abs(next - n) <= step
+      if (found) c
+      else next
+    }}
+
+  private val pTexCoord: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
   pTexCoord.put(Array(1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f))
   pTexCoord.position(0)
  
@@ -99,6 +122,8 @@ class MainRenderer(val view: MainView) extends Object
     GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, hTex(0))
     GLES20.glUniform1i(th, 0)
 
+    updateVerts()
+
     GLES20.glVertexAttribPointer(ph, 2, GLES20.GL_FLOAT, false, 4*2, pVertex)
     GLES20.glVertexAttribPointer(tch, 2, GLES20.GL_FLOAT, false, 4*2, pTexCoord)
     GLES20.glEnableVertexAttribArray(ph)
@@ -107,7 +132,23 @@ class MainRenderer(val view: MainView) extends Object
     GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
     GLES20.glFlush()
   }
- 
+
+  private def updateVerts(): Unit = {
+    val currentTime = System.currentTimeMillis()
+    val dirtyRandVerts = (currentTime - nextRandVertsUpdateTime) > 0L
+    lazy val dirtyVerts = (currentTime - nextVertsUpdateTime) > 0L
+
+    if (dirtyRandVerts) {
+      nextRandVerts = originalVerts map { x => x + (rand.nextFloat() - 0.5f) / 1.2f }
+      nextRandVertsUpdateTime = currentTime + RAND_VERTS_UPDATE_INTERVAL + rand.nextLong() % 1000L
+    } else if (dirtyVerts) {
+      currentVerts = approxVertsStep(current = currentVerts, next = nextRandVerts)
+      pVertex.put(currentVerts.toArray)
+      pVertex.position(0)
+      nextVertsUpdateTime = currentTime + VERTS_UPDATE_INTERVAL
+    }
+  }
+
   override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
     GLES20.glViewport(0, 0, width, height)
 
