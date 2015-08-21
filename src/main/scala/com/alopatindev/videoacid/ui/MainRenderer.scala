@@ -55,18 +55,18 @@ class MainRenderer(val view: MainView) extends Object
 
   private lazy val lightColorChangeApproxRandomizer = new ApproxRandomizer(
     originalVector = Vector(0.6f, 0.4f, 0.2f),
-    factor = 1.0f,
-    speed = 5.0f,
+    factor = 55.0f,
+    speed = 555.0f,
     updateInterval = 30L,
-    randUpdateInterval = 6000L
+    randUpdateInterval = 2000L
   )
 
   private lazy val darkColorChangeApproxRandomizer = new ApproxRandomizer(
     originalVector = Vector(0.8f, 0.4f, 0.4f),
-    factor = 1.7f,
-    speed = 130.0f,
+    factor = 6.7f,
+    speed = 50.0f,
     updateInterval = 30L,
-    randUpdateInterval = 2000L
+    randUpdateInterval = 4000L
   )
 
   private val pVertex: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
@@ -99,7 +99,6 @@ class MainRenderer(val view: MainView) extends Object
 
     //GLES20.glClearColor(0.5f, 0.5f, 0.5f, 1.0f)
     GLES20.glClearColor(1.0f, 1.0f, 0.0f, 1.0f)
-    GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA)
 
     mainShaderProgram = loadShader(vertMainShader, fragMainShader)
     monochromeShaderProgram = loadShader(vertMainShader, fragMonochromeShader)
@@ -140,14 +139,10 @@ class MainRenderer(val view: MainView) extends Object
 
       val fLow: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fLow")
       val fHigh: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fHigh")
-      val fInvertedMaskSign: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fInvertedMaskSign")
-      GLES20.glUniform1f(fLow, 0.3f)
-      GLES20.glUniform1f(fHigh, 0.4f)
-      GLES20.glUniform1f(fInvertedMaskSign, 1.0f)
+      GLES20.glUniform1f(fLow, 0.51f)
+      GLES20.glUniform1f(fHigh, 1.0f)
 
-      GLES20.glEnable(GLES20.GL_BLEND)
       GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
-      GLES20.glDisable(GLES20.GL_BLEND)
     }
 
     def drawDarkMonochrome(): Unit = {
@@ -159,25 +154,39 @@ class MainRenderer(val view: MainView) extends Object
 
       val fLow: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fLow")
       val fHigh: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fHigh")
-      val fInvertedMaskSign: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fInvertedMaskSign")
       GLES20.glUniform1f(fLow, 0.0f)
-      GLES20.glUniform1f(fHigh, 0.3f)
-      GLES20.glUniform1f(fInvertedMaskSign, -1.0f)
+      GLES20.glUniform1f(fHigh, 0.5f)
 
-      GLES20.glEnable(GLES20.GL_BLEND)
       GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
-      GLES20.glDisable(GLES20.GL_BLEND)
     }
 
     updateVerts()
     updateOtherColors()
 
     drawNormal()
-    drawDarkMonochrome()
+
+    GLES20.glEnable(GLES20.GL_BLEND)
+    configureBlending()
+
     drawLightMonochrome()
+    drawDarkMonochrome()
+
+    GLES20.glDisable(GLES20.GL_BLEND)
 
     //GLES20.glFlush()
     //GLES20.glFinish()
+  }
+
+  private def configureBlending(): Unit = {
+    //GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA)
+    //GLES20.glDepthMask(false)
+    //GLES20.glClearDepthf(1.0f)
+    //GLES20.glHint(GLES20.GL_POLYGON_SMOOTH, GLES20.GL_NICEST)
+    //GLES20.glCullFace(GLES20.GL_BACK)
+    GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA)
+    GLES20.glDepthMask(false)
+    GLES20.glClearDepthf(1.0f)
+    GLES20.glCullFace(GLES20.GL_BACK)
   }
 
   private def updateVerts(): Unit = {

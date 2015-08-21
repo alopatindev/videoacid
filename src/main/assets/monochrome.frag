@@ -7,7 +7,6 @@ varying vec2 texCoord;
 uniform vec3 vOtherColor;
 uniform float fLow;
 uniform float fHigh;
-uniform float fInvertedMaskSign;
 
 void main() {
   vec4 tex = texture2D(sTexture, texCoord);
@@ -16,12 +15,11 @@ void main() {
   float bw = (tex.r + tex.g + tex.b) * 0.33;
   float low = fLow;
   float high = fHigh;
-  float invertedMaskSign = fInvertedMaskSign;
+  float alpha = 0.3;
 
-  float rawMask = clamp(bw, low, high) - low;
-  float mask = sign(rawMask * invertedMaskSign);
-  vec3 mixed = mask * otherColor;
-  float alpha = bw * 0.3;
+  if (bw < low || bw > high) {
+    discard;
+  }
 
-  gl_FragColor = vec4(mixed, alpha);
+  gl_FragColor = vec4(otherColor, alpha);
 }
