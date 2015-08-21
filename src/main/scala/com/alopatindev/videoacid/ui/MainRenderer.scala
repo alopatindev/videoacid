@@ -8,14 +8,14 @@ import android.opengl.GLSurfaceView
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
 
-import com.alopatindev.videoacid.Utils
+import com.alopatindev.videoacid.{ApproxRandomizer, Utils}
 
-import rx.lang.scala._
+//import rx.lang.scala._
 
-import language.postfixOps
+//import language.postfixOps
 
-import scala.concurrent.duration._
-import scala.util.{Random, Try}
+//import scala.concurrent.duration._
+import scala.util.Try
 
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -45,48 +45,27 @@ class MainRenderer(val view: MainView) extends Object
  
   @volatile private var surfaceDirty = false
 
-  private val DISTORTION_FACTOR = 1.5f
-  private val DISTORTION_SPEED = 2.0f
-  val RAND_VERTS_UPDATE_INTERVAL = 2000L / DISTORTION_SPEED.toLong
-  val VERTS_UPDATE_INTERVAL = 30L
-  var nextRandVertsUpdateTime = 0L
-  var nextVertsUpdateTime = 0L
+  private val vertsApproxRandomizer = new ApproxRandomizer(
+    originalVector = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f),
+    factor = 1.5f,
+    speed = 2.0f,
+    updateInterval = 30L,
+    randUpdateInterval = 2000L
+  )
 
-  private val COLORCHANGE_FACTOR = 2.5f
-  private val COLORCHANGE_SPEED = 47.0f
-  val RAND_COLOR_UPDATE_INTERVAL = 6000L / COLORCHANGE_SPEED.toLong
-  val COLOR_UPDATE_INTERVAL = 30L
-  var nextRandColorUpdateTime = 0L
-  var nextColorUpdateTime = 0L
+  private val colorChangeApproxRandomizer = new ApproxRandomizer(
+    originalVector = Vector(0.6f, 0.4f, 0.2f),
+    factor = 2.5f,
+    speed = 4.0f,
+    updateInterval = 30L,
+    randUpdateInterval = 6000L
+  )
 
-  lazy val rand = new Random()
-
-  private val SMOOTH = 0.001f
   private val pVertex: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
-  private val originalVerts = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f)
-  //private val originalVerts = Vector(1.0f,-1.0f,  -0.5f,-1.0f,  1.0f,1.0f, -0.5f,1.0f)
-  //private val originalVerts = Vector(0.5f,-1.0f,  -1.0f,-1.0f,  0.5f,1.0f, -1.0f,1.0f)
-  private var nextRandVerts = originalVerts
-  private var currentVerts = originalVerts
   updateVerts()
-
-  private val origOtherColor = Vector(0.6f, 0.4f, 0.2f)
-  private var currentOtherColor = origOtherColor
-  private var nextRandOtherColor = origOtherColor
-
-  def approxStep(current: Vector[Float], next: Vector[Float], step: Float): Vector[Float] =
-    (current zip next) map { case (c, n) => {
-      val acc = if (c < n) step else -step
-      val next = c + acc
-      val found = Math.abs(next - n) <= step
-      if (found) c
-      else next
-    }}
 
   private val pTexCoord: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
   pTexCoord.put(Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.0f, 0.0f,0.0f))
-  //pTexCoord.put(Array(1.0f,1.0f, 0.5f,1.0f, 1.0f,0.0f, 0.5f,0.0f))
-  //pTexCoord.put(Array(0.5f,1.0f, 0.0f,1.0f, 0.5f,0.0f, 0.0f,0.0f))
   pTexCoord.position(0)
  
   def close(): Unit = {
@@ -148,7 +127,8 @@ class MainRenderer(val view: MainView) extends Object
       GLES20.glUseProgram(monochromeShaderProgram)
 
       val vOtherColor: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "vOtherColor")
-      GLES20.glUniform3f(vOtherColor, currentOtherColor(0), currentOtherColor(1), currentOtherColor(2))
+      val otherColor: Vector[Float] = colorChangeApproxRandomizer.getCurrentVector()
+      GLES20.glUniform3f(vOtherColor, otherColor(0), otherColor(1), otherColor(2))
 
       GLES20.glEnable(GLES20.GL_BLEND)
       GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
@@ -166,42 +146,13 @@ class MainRenderer(val view: MainView) extends Object
   }
 
   private def updateVerts(): Unit = {
-    val currentTime = System.currentTimeMillis()
-    val dirtyRandVerts = (currentTime - nextRandVertsUpdateTime) > 0L
-    lazy val dirtyVerts = (currentTime - nextVertsUpdateTime) > 0L
-
-    if (dirtyRandVerts) {
-      nextRandVerts = originalVerts map { x => {
-        val newX = x + (rand.nextFloat() - 0.5f) * DISTORTION_FACTOR
-        if (Math.abs(newX) > 1.0f) newX
-        else x
-      }}
-      logi(s"verts -> $nextRandVerts")
-      nextRandVertsUpdateTime = currentTime + RAND_VERTS_UPDATE_INTERVAL + rand.nextLong() % 1000L
-    } else if (dirtyVerts) {
-      currentVerts = approxStep(current = currentVerts, next = nextRandVerts, SMOOTH * DISTORTION_SPEED)
-      pVertex.put(currentVerts.toArray)
-      pVertex.position(0)
-      nextVertsUpdateTime = currentTime + VERTS_UPDATE_INTERVAL
-    }
+    vertsApproxRandomizer.update()
+    pVertex.put(vertsApproxRandomizer.getCurrentArray())
+    pVertex.position(0)
   }
 
   def updateOtherColor(): Unit = {
-    val currentTime = System.currentTimeMillis()
-    val dirtyRandColors = (currentTime - nextRandColorUpdateTime) > 0L
-    lazy val dirtyColors = (currentTime - nextColorUpdateTime) > 0L
-
-    if (dirtyRandColors) {
-      nextRandOtherColor = origOtherColor map { x =>
-        val newX = x + (rand.nextFloat() - 0.5f) * COLORCHANGE_FACTOR
-        if (Math.abs(newX) > 1.0f) newX
-        else x
-      }
-      nextRandColorUpdateTime = currentTime + RAND_COLOR_UPDATE_INTERVAL + rand.nextLong() % 1000L
-    } else if (dirtyColors) {
-      currentOtherColor = approxStep(current = currentOtherColor, next = nextRandOtherColor, SMOOTH * COLORCHANGE_SPEED)
-      nextColorUpdateTime = currentTime + COLOR_UPDATE_INTERVAL
-    }
+    colorChangeApproxRandomizer.update()
   }
 
   override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
