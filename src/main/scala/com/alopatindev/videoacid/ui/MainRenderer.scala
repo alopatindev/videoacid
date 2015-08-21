@@ -43,8 +43,6 @@ class MainRenderer(val view: MainView) extends Object
   private var camera: Option[Camera] = None
   private var surfaceTexture: Option[SurfaceTexture] = None
  
-  @volatile private var surfaceDirty = false
-
   private lazy val vertsApproxRandomizer = new ApproxRandomizer(
     originalVector = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f),
     factor = 1.5f,
@@ -77,7 +75,6 @@ class MainRenderer(val view: MainView) extends Object
   uvCoords.position(0)
  
   def close(): Unit = {
-    surfaceDirty = false
     surfaceTexture foreach { _.release() }
     camera foreach { cam => {
       cam.stopPreview()
@@ -118,13 +115,6 @@ class MainRenderer(val view: MainView) extends Object
   }
  
   override def onDrawFrame(unused: GL10): Unit = {
-    GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
-  
-    if (surfaceDirty) {
-      surfaceTexture foreach { _.updateTexImage() }
-      surfaceDirty = false
-    }
-
     def drawNormal(): Unit = {
       GLES20.glUseProgram(mainShaderProgram)
       GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
@@ -160,21 +150,29 @@ class MainRenderer(val view: MainView) extends Object
       GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
     }
 
-    updateVerts()
-    updateOtherColors()
+    def drawAll(): Unit = {
+      GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
 
-    drawNormal()
+      surfaceTexture foreach { _.updateTexImage() }
 
-    GLES20.glEnable(GLES20.GL_BLEND)
-    configureBlending()
+      updateVerts()
+      updateOtherColors()
 
-    drawLightMonochrome()
-    drawDarkMonochrome()
+      drawNormal()
 
-    GLES20.glDisable(GLES20.GL_BLEND)
+      GLES20.glEnable(GLES20.GL_BLEND)
+      configureBlending()
 
-    //GLES20.glFlush()
-    //GLES20.glFinish()
+      drawLightMonochrome()
+      drawDarkMonochrome()
+
+      GLES20.glDisable(GLES20.GL_BLEND)
+
+      //GLES20.glFlush()
+      //GLES20.glFinish()
+    }
+
+    drawAll()
   }
 
   private def configureBlending(): Unit = {
@@ -238,7 +236,6 @@ class MainRenderer(val view: MainView) extends Object
   }
  
   override def onFrameAvailable(st: SurfaceTexture): Unit = {
-    surfaceDirty = true
     view.requestRender()
   }
  
