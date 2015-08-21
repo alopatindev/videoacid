@@ -52,6 +52,9 @@ class MainRenderer(val view: MainView) extends Object
   private var surfaceTexture: Option[SurfaceTexture] = None
  
   @volatile private var surfaceDirty = false
+
+  private val DISTORTION_FACTOR = 1.5f
+  private val DISTORTION_SPEED = 5.0f
   val RAND_VERTS_UPDATE_INTERVAL = 2000L * DISTORTION_SPEED.toLong
   val VERTS_UPDATE_INTERVAL = 30L
   var nextRandVertsUpdateTime = 0L
@@ -60,10 +63,10 @@ class MainRenderer(val view: MainView) extends Object
   lazy val rand = new Random()
 
   private val SMOOTH = 0.001f
-  private val DISTORTION_FACTOR = 1.5f
-  private val DISTORTION_SPEED = 5.0f
   private val pVertex: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
-  private val originalVerts = List(1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f) map { DISTORTION_FACTOR / _ }
+  private val originalVerts = List(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f) map { DISTORTION_FACTOR / _ }
+  //private val originalVerts = List(1.0f,-1.0f,  -0.5f,-1.0f,  1.0f,1.0f, -0.5f,1.0f) map { DISTORTION_FACTOR / _ }
+  //private val originalVerts = List(0.5f,-1.0f,  -1.0f,-1.0f,  0.5f,1.0f, -1.0f,1.0f) map { DISTORTION_FACTOR / _ }
   private var nextRandVerts = originalVerts
   private var currentVerts = originalVerts
   updateVerts()
@@ -78,7 +81,9 @@ class MainRenderer(val view: MainView) extends Object
     }}
 
   private val pTexCoord: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
-  pTexCoord.put(Array(1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f))
+  pTexCoord.put(Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.0f, 0.0f,0.0f))
+  //pTexCoord.put(Array(1.0f,1.0f, 0.5f,1.0f, 1.0f,0.0f, 0.5f,0.0f))
+  //pTexCoord.put(Array(0.5f,1.0f, 0.0f,1.0f, 0.5f,0.0f, 0.0f,0.0f))
   pTexCoord.position(0)
  
   def close(): Unit = {
