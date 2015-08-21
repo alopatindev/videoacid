@@ -52,18 +52,29 @@ class MainRenderer(val view: MainView) extends Object
   var nextRandVertsUpdateTime = 0L
   var nextVertsUpdateTime = 0L
 
+  private val COLORCHANGE_FACTOR = 2.5f
+  private val COLORCHANGE_SPEED = 47.0f
+  val RAND_COLOR_UPDATE_INTERVAL = 6000L / COLORCHANGE_SPEED.toLong
+  val COLOR_UPDATE_INTERVAL = 30L
+  var nextRandColorUpdateTime = 0L
+  var nextColorUpdateTime = 0L
+
   lazy val rand = new Random()
 
   private val SMOOTH = 0.001f
   private val pVertex: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
-  private val originalVerts = List(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f)
-  //private val originalVerts = List(1.0f,-1.0f,  -0.5f,-1.0f,  1.0f,1.0f, -0.5f,1.0f)
-  //private val originalVerts = List(0.5f,-1.0f,  -1.0f,-1.0f,  0.5f,1.0f, -1.0f,1.0f)
+  private val originalVerts = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f)
+  //private val originalVerts = Vector(1.0f,-1.0f,  -0.5f,-1.0f,  1.0f,1.0f, -0.5f,1.0f)
+  //private val originalVerts = Vector(0.5f,-1.0f,  -1.0f,-1.0f,  0.5f,1.0f, -1.0f,1.0f)
   private var nextRandVerts = originalVerts
   private var currentVerts = originalVerts
   updateVerts()
 
-  def approxVertsStep(current: List[Float], next: List[Float], step: Float = SMOOTH * DISTORTION_SPEED): List[Float] =
+  private val origOtherColor = Vector(0.6f, 0.4f, 0.2f)
+  private var currentOtherColor = origOtherColor
+  private var nextRandOtherColor = origOtherColor
+
+  def approxStep(current: Vector[Float], next: Vector[Float], step: Float): Vector[Float] =
     (current zip next) map { case (c, n) => {
       val acc = if (c < n) step else -step
       val next = c + acc
@@ -108,13 +119,13 @@ class MainRenderer(val view: MainView) extends Object
 
     val vPosition: Int = GLES20.glGetAttribLocation(mainShaderProgram, "vPosition")
     val vTexCoord: Int = GLES20.glGetAttribLocation(mainShaderProgram, "vTexCoord")
-    val sTexture: Int = GLES20.glGetUniformLocation(mainShaderProgram, "sTexture")
 
     GLES20.glVertexAttribPointer(vPosition, 2, GLES20.GL_FLOAT, false, 4*2, pVertex)
     GLES20.glVertexAttribPointer(vTexCoord, 2, GLES20.GL_FLOAT, false, 4*2, pTexCoord)
     GLES20.glEnableVertexAttribArray(vPosition)
     GLES20.glEnableVertexAttribArray(vTexCoord)
 
+    val sTexture: Int = GLES20.glGetUniformLocation(mainShaderProgram, "sTexture")
     GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
     GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, hTex(0))
     GLES20.glUniform1i(sTexture, 0)
@@ -135,12 +146,17 @@ class MainRenderer(val view: MainView) extends Object
 
     def drawMonochrome(): Unit = {
       GLES20.glUseProgram(monochromeShaderProgram)
+
+      val vOtherColor: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "vOtherColor")
+      GLES20.glUniform3f(vOtherColor, currentOtherColor(0), currentOtherColor(1), currentOtherColor(2))
+
       GLES20.glEnable(GLES20.GL_BLEND)
       GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
       GLES20.glDisable(GLES20.GL_BLEND)
     }
 
     updateVerts()
+    updateOtherColor()
 
     drawNormal()
     drawMonochrome()
@@ -163,10 +179,28 @@ class MainRenderer(val view: MainView) extends Object
       logi(s"verts -> $nextRandVerts")
       nextRandVertsUpdateTime = currentTime + RAND_VERTS_UPDATE_INTERVAL + rand.nextLong() % 1000L
     } else if (dirtyVerts) {
-      currentVerts = approxVertsStep(current = currentVerts, next = nextRandVerts)
+      currentVerts = approxStep(current = currentVerts, next = nextRandVerts, SMOOTH * DISTORTION_SPEED)
       pVertex.put(currentVerts.toArray)
       pVertex.position(0)
       nextVertsUpdateTime = currentTime + VERTS_UPDATE_INTERVAL
+    }
+  }
+
+  def updateOtherColor(): Unit = {
+    val currentTime = System.currentTimeMillis()
+    val dirtyRandColors = (currentTime - nextRandColorUpdateTime) > 0L
+    lazy val dirtyColors = (currentTime - nextColorUpdateTime) > 0L
+
+    if (dirtyRandColors) {
+      nextRandOtherColor = origOtherColor map { x =>
+        val newX = x + (rand.nextFloat() - 0.5f) * COLORCHANGE_FACTOR
+        if (Math.abs(newX) > 1.0f) newX
+        else x
+      }
+      nextRandColorUpdateTime = currentTime + RAND_COLOR_UPDATE_INTERVAL + rand.nextLong() % 1000L
+    } else if (dirtyColors) {
+      currentOtherColor = approxStep(current = currentOtherColor, next = nextRandOtherColor, SMOOTH * COLORCHANGE_SPEED)
+      nextColorUpdateTime = currentTime + COLOR_UPDATE_INTERVAL
     }
   }
 
