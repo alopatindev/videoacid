@@ -38,7 +38,7 @@ class MainRenderer(val view: MainView) extends Object
   private var mainShaderProgram: Int = 0
   private var monochromeShaderProgram: Int = 0
 
-  private val hTex: Array[Int] = Array(0)
+  private val texture: Array[Int] = Array(0)
  
   private var camera: Option[Camera] = None
   private var surfaceTexture: Option[SurfaceTexture] = None
@@ -88,8 +88,8 @@ class MainRenderer(val view: MainView) extends Object
   }
  
   override def onSurfaceCreated(unused: GL10, config: EGLConfig): Unit = {
-    initTex()
-    surfaceTexture = Some(new SurfaceTexture(hTex(0)))
+    initTexture()
+    surfaceTexture = Some(new SurfaceTexture(texture(0)))
     surfaceTexture foreach { _.setOnFrameAvailableListener(this) }
 
     Try {
@@ -113,7 +113,7 @@ class MainRenderer(val view: MainView) extends Object
 
     val sTexture: Int = GLES20.glGetUniformLocation(mainShaderProgram, "sTexture")
     GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
-    GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, hTex(0))
+    GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, texture(0))
     GLES20.glUniform1i(sTexture, 0)
   }
  
@@ -220,17 +220,21 @@ class MainRenderer(val view: MainView) extends Object
     }}
   }
  
-  private def initTex(): Unit = {
-    GLES20.glGenTextures(1, hTex, 0)
-    GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, hTex(0))
+  private def initTexture(): Unit = {
+    GLES20.glGenTextures(1, texture, 0)
+    GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, texture(0))
+
     GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
     GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
-    GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST)
-    GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST)
+
+    //GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST)
+    //GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST)
+    GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
+    GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
   }
  
   private def deleteTex(): Unit = {
-    GLES20.glDeleteTextures(1, hTex, 0)
+    GLES20.glDeleteTextures(1, texture, 0)
   }
  
   override def onFrameAvailable(st: SurfaceTexture): Unit = {
