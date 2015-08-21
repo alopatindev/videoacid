@@ -13,7 +13,7 @@ void main() {
   vec4 tex = texture2D(sTexture, texCoord);
   vec3 otherColor = vOtherColor;
 
-  float bw = (tex.r + tex.g + tex.b) / 3.0;
+  float bw = (tex.r + tex.g + tex.b) * 0.33;
   float low = fLow;
   float high = fHigh;
   float invertedMaskSign = fInvertedMaskSign;
@@ -21,6 +21,7 @@ void main() {
   float rawMask = clamp(bw, low, high) - low;
   float mask = sign(rawMask * invertedMaskSign);
   vec3 mixed = mask * otherColor;
+  float alpha = bw * 0.3;
 
-  gl_FragColor = vec4(mixed, bw);
+  gl_FragColor = vec4(mixed, alpha);
 }

@@ -45,7 +45,7 @@ class MainRenderer(val view: MainView) extends Object
  
   @volatile private var surfaceDirty = false
 
-  private val vertsApproxRandomizer = new ApproxRandomizer(
+  private lazy val vertsApproxRandomizer = new ApproxRandomizer(
     originalVector = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f),
     factor = 1.5f,
     speed = 2.0f,
@@ -53,20 +53,20 @@ class MainRenderer(val view: MainView) extends Object
     randUpdateInterval = 2000L
   )
 
-  private val lightColorChangeApproxRandomizer = new ApproxRandomizer(
+  private lazy val lightColorChangeApproxRandomizer = new ApproxRandomizer(
     originalVector = Vector(0.6f, 0.4f, 0.2f),
-    factor = 8.5f,
+    factor = 1.0f,
     speed = 5.0f,
     updateInterval = 30L,
     randUpdateInterval = 6000L
   )
 
-  private val darkColorChangeApproxRandomizer = new ApproxRandomizer(
-    originalVector = Vector(0.4f, 0.7f, 0.7f),
-    factor = 2.5f,
+  private lazy val darkColorChangeApproxRandomizer = new ApproxRandomizer(
+    originalVector = Vector(0.8f, 0.4f, 0.4f),
+    factor = 1.7f,
     speed = 130.0f,
     updateInterval = 30L,
-    randUpdateInterval = 6000L
+    randUpdateInterval = 2000L
   )
 
   private val pVertex: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
@@ -141,8 +141,8 @@ class MainRenderer(val view: MainView) extends Object
       val fLow: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fLow")
       val fHigh: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fHigh")
       val fInvertedMaskSign: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fInvertedMaskSign")
-      GLES20.glUniform1f(fLow, 0.5f)
-      GLES20.glUniform1f(fHigh, 0.8f)
+      GLES20.glUniform1f(fLow, 0.3f)
+      GLES20.glUniform1f(fHigh, 0.4f)
       GLES20.glUniform1f(fInvertedMaskSign, 1.0f)
 
       GLES20.glEnable(GLES20.GL_BLEND)
@@ -160,7 +160,7 @@ class MainRenderer(val view: MainView) extends Object
       val fLow: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fLow")
       val fHigh: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fHigh")
       val fInvertedMaskSign: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fInvertedMaskSign")
-      GLES20.glUniform1f(fLow, 0.1f)
+      GLES20.glUniform1f(fLow, 0.0f)
       GLES20.glUniform1f(fHigh, 0.3f)
       GLES20.glUniform1f(fInvertedMaskSign, -1.0f)
 
@@ -173,8 +173,8 @@ class MainRenderer(val view: MainView) extends Object
     updateOtherColors()
 
     drawNormal()
-    drawLightMonochrome()
     drawDarkMonochrome()
+    drawLightMonochrome()
 
     //GLES20.glFlush()
     //GLES20.glFinish()
