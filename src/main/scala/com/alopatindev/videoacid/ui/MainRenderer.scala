@@ -69,12 +69,12 @@ class MainRenderer(val view: MainView) extends Object
     randUpdateInterval = 4000L
   )
 
-  private val pVertex: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
+  private val verts: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
   updateVerts()
 
-  private val pTexCoord: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
-  pTexCoord.put(Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.0f, 0.0f,0.0f))
-  pTexCoord.position(0)
+  private val uvCoords: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
+  uvCoords.put(Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.0f, 0.0f,0.0f))
+  uvCoords.position(0)
  
   def close(): Unit = {
     surfaceDirty = false
@@ -106,8 +106,8 @@ class MainRenderer(val view: MainView) extends Object
     val vPosition: Int = GLES20.glGetAttribLocation(mainShaderProgram, "vPosition")
     val vTexCoord: Int = GLES20.glGetAttribLocation(mainShaderProgram, "vTexCoord")
 
-    GLES20.glVertexAttribPointer(vPosition, 2, GLES20.GL_FLOAT, false, 4*2, pVertex)
-    GLES20.glVertexAttribPointer(vTexCoord, 2, GLES20.GL_FLOAT, false, 4*2, pTexCoord)
+    GLES20.glVertexAttribPointer(vPosition, 2, GLES20.GL_FLOAT, false, 0, verts)
+    GLES20.glVertexAttribPointer(vTexCoord, 2, GLES20.GL_FLOAT, false, 0, uvCoords)
     GLES20.glEnableVertexAttribArray(vPosition)
     GLES20.glEnableVertexAttribArray(vTexCoord)
 
@@ -191,8 +191,8 @@ class MainRenderer(val view: MainView) extends Object
 
   private def updateVerts(): Unit = {
     vertsApproxRandomizer.update()
-    pVertex.put(vertsApproxRandomizer.getCurrentArray())
-    pVertex.position(0)
+    verts.put(vertsApproxRandomizer.getCurrentArray())
+    verts.position(0)
   }
 
   def updateOtherColors(): Unit = {
