@@ -52,20 +52,23 @@ class MainRenderer(val view: MainView) extends Object
   private var surfaceTexture: Option[SurfaceTexture] = None
  
   @volatile private var surfaceDirty = false
-  val RAND_VERTS_UPDATE_INTERVAL = 2000L
+  val RAND_VERTS_UPDATE_INTERVAL = 2000L * DISTORTION_SPEED.toLong
   val VERTS_UPDATE_INTERVAL = 30L
   var nextRandVertsUpdateTime = 0L
   var nextVertsUpdateTime = 0L
 
   lazy val rand = new Random()
 
+  private val SMOOTH = 0.001f
+  private val DISTORTION_FACTOR = 1.5f
+  private val DISTORTION_SPEED = 5.0f
   private val pVertex: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
-  private val originalVerts = List(1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f)
+  private val originalVerts = List(1.0f, -1.0f, -1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f) map { DISTORTION_FACTOR / _ }
   private var nextRandVerts = originalVerts
   private var currentVerts = originalVerts
   updateVerts()
 
-  def approxVertsStep(current: List[Float], next: List[Float], step: Float = 0.001f): List[Float] =
+  def approxVertsStep(current: List[Float], next: List[Float], step: Float = SMOOTH * DISTORTION_SPEED): List[Float] =
     (current zip next) map { case (c, n) => {
       val acc = if (c < n) step else -step
       val next = c + acc
@@ -139,7 +142,7 @@ class MainRenderer(val view: MainView) extends Object
     lazy val dirtyVerts = (currentTime - nextVertsUpdateTime) > 0L
 
     if (dirtyRandVerts) {
-      nextRandVerts = originalVerts map { x => x + (rand.nextFloat() - 0.5f) / 1.2f }
+      nextRandVerts = originalVerts map { x => x + (rand.nextFloat() - 0.5f) * DISTORTION_FACTOR }
       nextRandVertsUpdateTime = currentTime + RAND_VERTS_UPDATE_INTERVAL + rand.nextLong() % 1000L
     } else if (dirtyVerts) {
       currentVerts = approxVertsStep(current = currentVerts, next = nextRandVerts)
