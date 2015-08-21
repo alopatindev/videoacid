@@ -54,8 +54,8 @@ class MainRenderer(val view: MainView) extends Object
   @volatile private var surfaceDirty = false
 
   private val DISTORTION_FACTOR = 1.5f
-  private val DISTORTION_SPEED = 5.0f
-  val RAND_VERTS_UPDATE_INTERVAL = 2000L * DISTORTION_SPEED.toLong
+  private val DISTORTION_SPEED = 2.0f
+  val RAND_VERTS_UPDATE_INTERVAL = 2000L / DISTORTION_SPEED.toLong
   val VERTS_UPDATE_INTERVAL = 30L
   var nextRandVertsUpdateTime = 0L
   var nextVertsUpdateTime = 0L
@@ -64,9 +64,9 @@ class MainRenderer(val view: MainView) extends Object
 
   private val SMOOTH = 0.001f
   private val pVertex: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
-  private val originalVerts = List(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f) map { DISTORTION_FACTOR / _ }
-  //private val originalVerts = List(1.0f,-1.0f,  -0.5f,-1.0f,  1.0f,1.0f, -0.5f,1.0f) map { DISTORTION_FACTOR / _ }
-  //private val originalVerts = List(0.5f,-1.0f,  -1.0f,-1.0f,  0.5f,1.0f, -1.0f,1.0f) map { DISTORTION_FACTOR / _ }
+  private val originalVerts = List(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f)
+  //private val originalVerts = List(1.0f,-1.0f,  -0.5f,-1.0f,  1.0f,1.0f, -0.5f,1.0f)
+  //private val originalVerts = List(0.5f,-1.0f,  -1.0f,-1.0f,  0.5f,1.0f, -1.0f,1.0f)
   private var nextRandVerts = originalVerts
   private var currentVerts = originalVerts
   updateVerts()
@@ -147,7 +147,12 @@ class MainRenderer(val view: MainView) extends Object
     lazy val dirtyVerts = (currentTime - nextVertsUpdateTime) > 0L
 
     if (dirtyRandVerts) {
-      nextRandVerts = originalVerts map { x => x + (rand.nextFloat() - 0.5f) * DISTORTION_FACTOR }
+      nextRandVerts = originalVerts map { x => {
+        val newX = x + (rand.nextFloat() - 0.5f) * DISTORTION_FACTOR
+        if (Math.abs(newX) > 1.0f) newX
+        else x
+      }}
+      logi(s"verts -> $nextRandVerts")
       nextRandVertsUpdateTime = currentTime + RAND_VERTS_UPDATE_INTERVAL + rand.nextLong() % 1000L
     } else if (dirtyVerts) {
       currentVerts = approxVertsStep(current = currentVerts, next = nextRandVerts)
