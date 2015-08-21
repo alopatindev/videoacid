@@ -100,9 +100,23 @@ class MainRenderer(val view: MainView) extends Object
     }
 
     GLES20.glClearColor(1.0f, 1.0f, 0.0f, 1.0f)
-  
+    GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA)
+
     mainShaderProgram = loadShader(vertMainShader, fragMainShader)
     monochromeShaderProgram = loadShader(vertMainShader, fragMonochromeShader)
+
+    val vPosition: Int = GLES20.glGetAttribLocation(mainShaderProgram, "vPosition")
+    val vTexCoord: Int = GLES20.glGetAttribLocation(mainShaderProgram, "vTexCoord")
+    val sTexture: Int = GLES20.glGetUniformLocation(mainShaderProgram, "sTexture")
+
+    GLES20.glVertexAttribPointer(vPosition, 2, GLES20.GL_FLOAT, false, 4*2, pVertex)
+    GLES20.glVertexAttribPointer(vTexCoord, 2, GLES20.GL_FLOAT, false, 4*2, pTexCoord)
+    GLES20.glEnableVertexAttribArray(vPosition)
+    GLES20.glEnableVertexAttribArray(vTexCoord)
+
+    GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+    GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, hTex(0))
+    GLES20.glUniform1i(sTexture, 0)
   }
  
   override def onDrawFrame(unused: GL10): Unit = {
@@ -113,42 +127,25 @@ class MainRenderer(val view: MainView) extends Object
       surfaceDirty = false
     }
 
-    GLES20.glUseProgram(mainShaderProgram)
+    def drawNormal(): Unit = {
+      GLES20.glUseProgram(mainShaderProgram)
+      GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+    }
 
-    val ph: Int = GLES20.glGetAttribLocation(mainShaderProgram, "vPosition")
-    val tch: Int = GLES20.glGetAttribLocation(mainShaderProgram, "vTexCoord")
-    val th: Int = GLES20.glGetUniformLocation(mainShaderProgram, "sTexture")
-  
-    GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
-    GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, hTex(0))
-    GLES20.glUniform1i(th, 0)
+    def drawMonochrome(): Unit = {
+      GLES20.glUseProgram(monochromeShaderProgram)
+      GLES20.glEnable(GLES20.GL_BLEND)
+      GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+      GLES20.glDisable(GLES20.GL_BLEND)
+    }
 
     updateVerts()
 
-    GLES20.glVertexAttribPointer(ph, 2, GLES20.GL_FLOAT, false, 4*2, pVertex)
-    GLES20.glVertexAttribPointer(tch, 2, GLES20.GL_FLOAT, false, 4*2, pTexCoord)
-    GLES20.glEnableVertexAttribArray(ph)
-    GLES20.glEnableVertexAttribArray(tch)
-  
-    GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+    drawNormal()
+    drawMonochrome()
 
-    //
-    GLES20.glUseProgram(monochromeShaderProgram)
-
-    GLES20.glEnable(GLES20.GL_BLEND)
-    GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA)
-
-    GLES20.glVertexAttribPointer(ph, 2, GLES20.GL_FLOAT, false, 4*2, pVertex)
-    GLES20.glVertexAttribPointer(tch, 2, GLES20.GL_FLOAT, false, 4*2, pTexCoord)
-    GLES20.glEnableVertexAttribArray(ph)
-    GLES20.glEnableVertexAttribArray(tch)
-
-    GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
-    GLES20.glDisable(GLES20.GL_BLEND)
-    //
-
-
-    GLES20.glFlush()
+    //GLES20.glFlush()
+    //GLES20.glFinish()
   }
 
   private def updateVerts(): Unit = {
