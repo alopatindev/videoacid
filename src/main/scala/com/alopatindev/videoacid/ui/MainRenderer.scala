@@ -99,6 +99,7 @@ class MainRenderer(val view: MainView) extends Object
       camera foreach { cam => surfaceTexture foreach { cam.setPreviewTexture(_) } }
     }
 
+    //GLES20.glClearColor(0.5f, 0.5f, 0.5f, 1.0f)
     GLES20.glClearColor(1.0f, 1.0f, 0.0f, 1.0f)
     GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA)
 
