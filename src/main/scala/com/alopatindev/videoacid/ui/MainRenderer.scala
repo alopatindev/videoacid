@@ -8,6 +8,8 @@ import android.opengl.GLSurfaceView
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
 
+import com.alopatindev.videoacid.Utils
+
 import rx.lang.scala._
 
 import language.postfixOps
@@ -25,25 +27,13 @@ class MainRenderer(val view: MainView) extends Object
                                        with GLSurfaceView.Renderer
                                        with SurfaceTexture.OnFrameAvailableListener {
 
+  import android.content.Context
   import com.alopatindev.videoacid.Logs._
 
-  private lazy val vss =
-      "attribute vec2 vPosition;\n" +
-      "attribute vec2 vTexCoord;\n" +
-      "varying vec2 texCoord;\n" +
-      "void main() {\n" +
-      "  texCoord = vTexCoord;\n" +
-      "  gl_Position = vec4(vPosition.x, vPosition.y, 0.0, 1.0);\n" +
-      "}"
- 
-  private lazy val fss =
-      "#extension GL_OES_EGL_image_external : require\n" +
-      "precision mediump float;\n" +
-      "uniform samplerExternalOES sTexture;\n" +
-      "varying vec2 texCoord;\n" +
-      "void main() {\n" +
-      "  gl_FragColor = texture2D(sTexture, texCoord);\n" +
-      "}"
+  implicit val ctx: Context = view.getContext()
+
+  private lazy val vss: Option[String] = Utils.loadAsset("main.vert")
+  private lazy val fss: Option[String] = Utils.loadAsset("main.frag")
 
   private val hTex: Array[Int] = Array(0)
   private var hProgram: Int = 0
@@ -200,9 +190,9 @@ class MainRenderer(val view: MainView) extends Object
     view.requestRender()
   }
  
-  private def loadShader(vss: String, fss: String): Int = {
+  private def loadShader(vss: Option[String], fss: Option[String]): Int = {
     var vshader: Int = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER)
-    GLES20.glShaderSource(vshader, vss)
+    vss foreach { vss => GLES20.glShaderSource(vshader, vss) }
     GLES20.glCompileShader(vshader)
     var compiled = Array(0)
     GLES20.glGetShaderiv(vshader, GLES20.GL_COMPILE_STATUS, compiled, 0)
@@ -214,7 +204,7 @@ class MainRenderer(val view: MainView) extends Object
     }
   
     var fshader: Int = GLES20.glCreateShader(GLES20.GL_FRAGMENT_SHADER)
-    GLES20.glShaderSource(fshader, fss)
+    fss foreach { fss => GLES20.glShaderSource(fshader, fss) }
     GLES20.glCompileShader(fshader)
     GLES20.glGetShaderiv(fshader, GLES20.GL_COMPILE_STATUS, compiled, 0)
     if (compiled(0) == 0) {
