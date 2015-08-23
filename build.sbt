@@ -1,10 +1,13 @@
 android.Plugin.androidBuild
 
 name := "videoacid"
+
 version := "0.0.1"
 
 scalaVersion := "2.11.7"
+
 scalacOptions in ThisBuild ++= Seq("-unchecked", "-deprecation")
+
 scalacOptions in Compile ++= Seq("-feature")
 
 javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
@@ -28,10 +31,20 @@ resolvers ++= Seq(
   "jcenter" at "http://jcenter.bintray.com"
 )
 
+lazy val wakeDeviceScreen = taskKey[Unit]("Execute the shell script")
+
+wakeDeviceScreen := {
+  "scripts/wake_device_screen.sh" !
+}
+
 platformTarget in Android := "android-15"
+
 run <<= run in Android
+
 proguardScala in Android := true
+
 useProguard in Android := true
+
 proguardOptions in Android ++= Seq(
   "-ignorewarnings",
   "-keep class scala.Dynamic"

@@ -10,7 +10,7 @@ cd_project_dir
 
 ln -sf ../../scripts/pre-commit .git/hooks/pre-commit
 
-#scripts/build_assets.sh
+scripts/build_assets.sh
 
 echo "starting sbt..."
 sbt

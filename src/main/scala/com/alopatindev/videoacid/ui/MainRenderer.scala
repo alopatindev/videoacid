@@ -243,11 +243,11 @@ class MainRenderer(val view: MainView) extends Object
     var vshader: Int = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER)
     vss foreach { vss => GLES20.glShaderSource(vshader, vss) }
     GLES20.glCompileShader(vshader)
+
     var compiled = Array(0)
     GLES20.glGetShaderiv(vshader, GLES20.GL_COMPILE_STATUS, compiled, 0)
-    if(compiled(0) == 0) {
-      loge("Could not compile vshader")
-      logd("Could not compile vshader:"+GLES20.glGetShaderInfoLog(vshader))
+    if (compiled(0) == 0) {
+      loge(s"Could not compile vshader: ${GLES20.glGetShaderInfoLog(vshader)}")
       GLES20.glDeleteShader(vshader)
       vshader = 0
     }
@@ -257,8 +257,7 @@ class MainRenderer(val view: MainView) extends Object
     GLES20.glCompileShader(fshader)
     GLES20.glGetShaderiv(fshader, GLES20.GL_COMPILE_STATUS, compiled, 0)
     if (compiled(0) == 0) {
-      loge("Could not compile fshader")
-      logd("Could not compile fshader:"+GLES20.glGetShaderInfoLog(fshader))
+      loge(s"Could not compile fshader: ${GLES20.glGetShaderInfoLog(fshader)}")
       GLES20.glDeleteShader(fshader)
       fshader = 0
     }

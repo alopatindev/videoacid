@@ -2,8 +2,9 @@ package com.alopatindev.videoacid.ui
 
 import android.content.Context
 import android.opengl.GLSurfaceView
+import android.util.AttributeSet
 
-class MainView(context: Context) extends GLSurfaceView(context) {
+class MainView(context: Context, attrs: AttributeSet) extends GLSurfaceView(context, attrs) {
 
   import android.view.SurfaceHolder
 
