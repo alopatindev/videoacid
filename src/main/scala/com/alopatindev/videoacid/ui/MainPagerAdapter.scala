@@ -15,7 +15,8 @@ class MainPagerAdapter(fm: FragmentManager, context: Context) extends FragmentPa
   implicit val ctx: Context = context
 
   lazy val fragments = Vector(
-    (new VideoFragment, VideoFragment.titleStringId)
+    (new VideoFragment, VideoFragment.titleStringId),
+    (new GalleryFragment, GalleryFragment.titleStringId)
   )
 
   override def getCount(): Int = fragments.length

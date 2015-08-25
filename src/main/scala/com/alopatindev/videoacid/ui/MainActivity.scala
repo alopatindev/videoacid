@@ -52,12 +52,3 @@ class MainActivity extends FragmentActivity with TypedFindView with ActivityUtil
   }
 
 }
-
-object MainActivity {
-
-  object Tab extends Enumeration {
-    type Tab = Value
-    val Video, Gallery = Value
-  }
-
-}

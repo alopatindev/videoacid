@@ -11,6 +11,7 @@ class MainView(context: Context, attrs: AttributeSet) extends GLSurfaceView(cont
   private val renderer = new MainRenderer(this)
 
   setEGLContextClientVersion(2)
+  //setPreserveEGLContextOnPause(true)
   setRenderer(renderer)
   setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY)
 

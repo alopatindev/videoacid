@@ -41,6 +41,8 @@ class MainRenderer(val view: MainView) extends Object
   private val texture: Array[Int] = Array(0)
  
   private var camera: Option[Camera] = None
+  private val cameraAngle: Float = -0.5f * Math.PI.toFloat
+
   private var surfaceTexture: Option[SurfaceTexture] = None
  
   private lazy val vertsApproxRandomizer = new ApproxRandomizer(
@@ -117,6 +119,10 @@ class MainRenderer(val view: MainView) extends Object
   override def onDrawFrame(unused: GL10): Unit = {
     def drawNormal(): Unit = {
       GLES20.glUseProgram(mainShaderProgram)
+
+      val fAngle: Int = GLES20.glGetUniformLocation(mainShaderProgram, "fAngle")
+      GLES20.glUniform1f(fAngle, cameraAngle)
+
       GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
     }
 
@@ -132,6 +138,9 @@ class MainRenderer(val view: MainView) extends Object
       GLES20.glUniform1f(fLow, 0.51f)
       GLES20.glUniform1f(fHigh, 1.0f)
 
+      val fAngle: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fAngle")
+      GLES20.glUniform1f(fAngle, cameraAngle)
+
       GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
     }
 
@@ -146,6 +155,9 @@ class MainRenderer(val view: MainView) extends Object
       val fHigh: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fHigh")
       GLES20.glUniform1f(fLow, 0.0f)
       GLES20.glUniform1f(fHigh, 0.5f)
+
+      val fAngle: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fAngle")
+      GLES20.glUniform1f(fAngle, cameraAngle)
 
       GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
     }
@@ -210,8 +222,8 @@ class MainRenderer(val view: MainView) extends Object
         if (item.width < width || item.height < height)
       } yield item
       val size = sizes.last
+      param.set("orientation", "portrait")
       param.setPreviewSize(size.width, size.height)
-      param.set("orientation", "landscape")
       param.setFocusMode("continuous-video")
       cam.setParameters(param)
       cam.startPreview()
