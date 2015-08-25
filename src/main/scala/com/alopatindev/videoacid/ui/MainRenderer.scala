@@ -28,6 +28,8 @@ class MainRenderer(val view: MainView) extends Object
                                        with SurfaceTexture.OnFrameAvailableListener {
 
   import android.content.Context
+  import android.os.Handler
+
   import com.alopatindev.videoacid.Logs._
 
   implicit val ctx: Context = view.getContext()
@@ -44,6 +46,8 @@ class MainRenderer(val view: MainView) extends Object
   private val cameraAngle: Float = -0.5f * Math.PI.toFloat
 
   private var surfaceTexture: Option[SurfaceTexture] = None
+
+  private lazy val handler: Handler = new Handler()
  
   private lazy val vertsApproxRandomizer = new ApproxRandomizer(
     originalVector = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f),
@@ -75,26 +79,66 @@ class MainRenderer(val view: MainView) extends Object
   private val uvCoords: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
   uvCoords.put(Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.0f, 0.0f,0.0f))
   uvCoords.position(0)
- 
-  def close(): Unit = {
+
+  def startCamera(width: Int, height: Int): Unit = {
+    //Utils.runOnHandler(handler, () => { // FIXME
+      logi("startCamera thread=" + Thread.currentThread.getId())
+
+      Try {
+        camera = Some(Camera.open())
+        camera foreach { cam => {
+          cam.lock()
+          surfaceTexture foreach { cam.setPreviewTexture(_) }
+        }}
+      }
+
+      camera foreach { cam => {
+        val param = cam.getParameters()
+        val psize = param.getSupportedPreviewSizes()
+        val sizes = for {
+          i <- 0 until psize.size()
+          item = psize.get(i)
+          if (item.width >= width || item.height >= height)
+        } yield item
+        val size = sizes.last
+
+        for (item <- sizes) yield logi(s"available size w=${item.width} h=${item.height}")
+
+        param.set("orientation", "portrait")
+        param.setPreviewSize(size.width, size.height)
+        logi(s"using width=${size.width} height=${size.height}")
+        param.setFocusMode("continuous-video")
+        cam.setParameters(param)
+        cam.startPreview()
+      }}
+    //})
+  }
+
+  def stopCamera(): Unit = {
+    //Utils.runOnHandler(handler, () => { // FIXME
+      logi("stopCamera thread=" + Thread.currentThread.getId())
+      camera foreach { cam => {
+        cam.setPreviewTexture(null)
+        cam.stopPreview()
+        cam.release()
+      }}
+      camera = None
+    //})
+  }
+
+  private def close(): Unit = {
+    logi("close thread=" + Thread.currentThread.getId())
+    stopCamera()
     surfaceTexture foreach { _.release() }
-    camera foreach { cam => {
-      cam.stopPreview()
-      cam.release()
-    }}
-    camera = None
     deleteTex()
   }
  
   override def onSurfaceCreated(unused: GL10, config: EGLConfig): Unit = {
+    logd("onSurfaceCreated thread=" + Thread.currentThread.getId())
+
     initTexture()
     surfaceTexture = Some(new SurfaceTexture(texture(0)))
     surfaceTexture foreach { _.setOnFrameAvailableListener(this) }
-
-    Try {
-      camera = Some(Camera.open())
-      camera foreach { cam => surfaceTexture foreach { cam.setPreviewTexture(_) } }
-    }
 
     //GLES20.glClearColor(0.5f, 0.5f, 0.5f, 1.0f)
     GLES20.glClearColor(1.0f, 1.0f, 0.0f, 1.0f)
@@ -211,26 +255,16 @@ class MainRenderer(val view: MainView) extends Object
   }
 
   override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
-    GLES20.glViewport(0, 0, width, height)
+    logd("onSurfaceChanged")
 
-    camera foreach { cam => {
-      val param = cam.getParameters()
-      val psize = param.getSupportedPreviewSizes()
-      val sizes = for {
-        i <- 0 until psize.size()
-        item = psize.get(i)
-        if (item.width < width || item.height < height)
-      } yield item
-      val size = sizes.last
-      param.set("orientation", "portrait")
-      param.setPreviewSize(size.width, size.height)
-      param.setFocusMode("continuous-video")
-      cam.setParameters(param)
-      cam.startPreview()
-    }}
+    startCamera(width, height)
+
+    GLES20.glViewport(0, 0, width, height)
   }
  
   private def initTexture(): Unit = {
+    logd("initTexture")
+
     GLES20.glGenTextures(1, texture, 0)
     GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, texture(0))
 

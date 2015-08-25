@@ -11,7 +11,7 @@ object Utils {
 
   import java.io.InputStream
 
-  lazy val handler = new Handler(Looper.getMainLooper)
+  lazy val uiHandler = new Handler(Looper.getMainLooper)
   lazy val uiThread = Looper.getMainLooper.getThread
 
   def loadAsset(path: String)(implicit ctx: Context): Option[String] = Try {
@@ -23,18 +23,22 @@ object Utils {
 
   def getString(id: Int)(implicit ctx: Context): String = ctx.getString(id)
 
+  def runOnHandler(handler: Handler, f: => Unit, delay: Int = 0) = {
+    val runnable = new Runnable() {
+      override def run() = f
+    }
+    if (delay > 0) {
+      handler postDelayed (runnable, delay)
+    } else {
+      handler post runnable
+    }
+  }
+
   def runOnUIThread(f: => Unit, delay: Int = 0): Unit =
     if (uiThread == Thread.currentThread) {
       f
     } else {
-      val runnable = new Runnable() {
-        override def run() = f
-      }
-      if (delay > 0) {
-        handler postDelayed (runnable, delay)
-      } else {
-        handler post runnable
-      }
+      runOnHandler(uiHandler, f, delay)
     }
 
   def evalOnUIThread[T](f: => T, delay: Int = 0): Future[T] =
@@ -46,9 +50,9 @@ object Utils {
         override def run() = p.complete(Try(f))
       }
       if (delay > 0) {
-        handler postDelayed (runnable, delay)
+        uiHandler postDelayed (runnable, delay)
       } else {
-        handler post runnable
+        uiHandler post runnable
       }
       p.future
     }

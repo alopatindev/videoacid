@@ -11,7 +11,7 @@ class MainView(context: Context, attrs: AttributeSet) extends GLSurfaceView(cont
   private val renderer = new MainRenderer(this)
 
   setEGLContextClientVersion(2)
-  //setPreserveEGLContextOnPause(true)
+  setPreserveEGLContextOnPause(true)
   setRenderer(renderer)
   setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY)
 
@@ -20,7 +20,7 @@ class MainView(context: Context, attrs: AttributeSet) extends GLSurfaceView(cont
   }
  
   override def surfaceDestroyed(holder: SurfaceHolder): Unit = {
-    renderer.close()
+    renderer.stopCamera()
     super.surfaceDestroyed(holder)
   }
  
