@@ -11,6 +11,7 @@ class VideoFragment extends Fragment with FragmentUtils {
 
   import android.os.Bundle
   import android.view.{LayoutInflater, View, ViewGroup}
+  import android.widget.LinearLayout
 
   import com.alopatindev.videoacid.Logs._
 
@@ -33,8 +34,18 @@ class VideoFragment extends Fragment with FragmentUtils {
     logd("VideoFragment.onResume")
     super.onResume()
     Try {
+      //val width = view.getWidth()
+      //view.setLayoutParams(new LinearLayout.LayoutParams(width, width))
       view.onResume()
     }
+  }
+
+  override def onDestroy(): Unit = {
+    logd("VideoFragment.onDestory")
+    Try {
+      view.release()
+    }
+    super.onDestroy()
   }
 
 }

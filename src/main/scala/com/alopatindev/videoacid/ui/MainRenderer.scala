@@ -3,7 +3,6 @@ package com.alopatindev.videoacid.ui
 import android.graphics.SurfaceTexture
 import android.graphics.SurfaceTexture.OnFrameAvailableListener
 import android.hardware.Camera
-import android.hardware.Camera._
 import android.opengl.GLSurfaceView
 import android.opengl.GLES11Ext
 import android.opengl.GLES20
@@ -28,7 +27,6 @@ class MainRenderer(val view: MainView) extends Object
                                        with SurfaceTexture.OnFrameAvailableListener {
 
   import android.content.Context
-  import android.os.Handler
 
   import com.alopatindev.videoacid.Logs._
 
@@ -42,13 +40,13 @@ class MainRenderer(val view: MainView) extends Object
 
   private val texture: Array[Int] = Array(0)
  
-  private var camera: Option[Camera] = None
+  @volatile private var camera: Option[Camera] = None
   private val cameraAngle: Float = -0.5f * Math.PI.toFloat
 
   private var surfaceTexture: Option[SurfaceTexture] = None
+  //private lazy val screenRatio: Float = view.getHeight().toFloat / view.getWidth().toFloat
+  private lazy val screenRatio = 1.0f
 
-  private lazy val handler: Handler = new Handler()
- 
   private lazy val vertsApproxRandomizer = new ApproxRandomizer(
     originalVector = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f),
     factor = 1.5f,
@@ -80,54 +78,45 @@ class MainRenderer(val view: MainView) extends Object
   uvCoords.put(Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.0f, 0.0f,0.0f))
   uvCoords.position(0)
 
-  def startCamera(width: Int, height: Int): Unit = {
-    //Utils.runOnHandler(handler, () => { // FIXME
-      logi("startCamera thread=" + Thread.currentThread.getId())
+  private def startCamera(surfaceWidth: Int, surfaceHeight: Int): Unit = {
+    logi("startCamera thread=" + Thread.currentThread.getId())
+    logi(s"startCamera ${surfaceWidth} ${surfaceHeight}")
 
-      Try {
-        camera = Some(Camera.open())
-        camera foreach { cam => {
-          cam.lock()
-          surfaceTexture foreach { cam.setPreviewTexture(_) }
-        }}
-      }
-
+    Try {
+      camera = Some(Camera.open())
       camera foreach { cam => {
-        val param = cam.getParameters()
-        val psize = param.getSupportedPreviewSizes()
-        val sizes = for {
-          i <- 0 until psize.size()
-          item = psize.get(i)
-          if (item.width >= width || item.height >= height)
-        } yield item
-        val size = sizes.last
-
-        for (item <- sizes) yield logi(s"available size w=${item.width} h=${item.height}")
-
-        param.set("orientation", "portrait")
-        param.setPreviewSize(size.width, size.height)
-        logi(s"using width=${size.width} height=${size.height}")
-        param.setFocusMode("continuous-video")
-        cam.setParameters(param)
-        cam.startPreview()
+        cam.lock()
+        surfaceTexture foreach { cam.setPreviewTexture(_) }
       }}
-    //})
+    }
+
+    camera foreach { cam => {
+      import scala.collection.JavaConversions._
+      val param = cam.getParameters()
+      //val bestCameraSize = param.getSupportedPreviewSizes().filter(item => item.width >= surfaceWidth || item.height >= surfaceHeight).last
+      val bestCameraSize = param.getSupportedPreviewSizes().sortBy(_.width).reverse.head
+      val bestMinCameraSize = Math.min(bestCameraSize.width, bestCameraSize.height)
+      logi(s"using width=${bestMinCameraSize}")
+      param.set("orientation", "portrait")
+      param.setPreviewSize(bestMinCameraSize, bestMinCameraSize)
+      param.setFocusMode("continuous-video")
+      cam.setParameters(param)
+      cam.startPreview()
+    }}
   }
 
   def stopCamera(): Unit = {
-    //Utils.runOnHandler(handler, () => { // FIXME
-      logi("stopCamera thread=" + Thread.currentThread.getId())
-      camera foreach { cam => {
-        cam.setPreviewTexture(null)
-        cam.stopPreview()
-        cam.release()
-      }}
-      camera = None
-    //})
+    logi("stopCamera thread=" + Thread.currentThread.getId())
+    camera foreach { cam => {
+      cam.setPreviewTexture(null)
+      cam.stopPreview()
+      cam.release()
+    }}
+    camera = None
   }
 
-  private def close(): Unit = {
-    logi("close thread=" + Thread.currentThread.getId())
+  def release(): Unit = {
+    logi("MainRenderer.release thread=" + Thread.currentThread.getId())
     stopCamera()
     surfaceTexture foreach { _.release() }
     deleteTex()
@@ -255,7 +244,7 @@ class MainRenderer(val view: MainView) extends Object
   }
 
   override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
-    logd("onSurfaceChanged")
+    logd(s"onSurfaceChanged")
 
     startCamera(width, height)
 
