@@ -20,12 +20,15 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="20dp"
+        android:layout_marginTop="25dp"
+        android:layout_marginBottom="25dp"
         android:gravity="center">
         <ImageButton
             android:id="@+id/toggleRecording"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:scaleType="fitCenter"
+            android:background="@null"
             android:src="@drawable/ic_video_camera"/>
     </LinearLayout>
 </LinearLayout>
