@@ -93,12 +93,14 @@ class MainRenderer(val view: MainView) extends Object
     camera foreach { cam => {
       import scala.collection.JavaConversions._
       val param = cam.getParameters()
-      //val bestCameraSize = param.getSupportedPreviewSizes().filter(item => item.width >= surfaceWidth || item.height >= surfaceHeight).last
-      val bestCameraSize = param.getSupportedPreviewSizes().sortBy(_.width).reverse.head
-      val bestMinCameraSize = Math.min(bestCameraSize.width, bestCameraSize.height)
-      logi(s"using width=${bestMinCameraSize}")
+      val bestCameraSize = param.getSupportedPreviewSizes().filter(item => item.width >= surfaceWidth || item.height >= surfaceHeight).last
+      //val bestCameraSize = param.getSupportedPreviewSizes().sortBy(_.width).reverse.head
+      //val bestMinCameraSize = Math.min(bestCameraSize.width, bestCameraSize.height)
+      //logi(s"using width=${bestMinCameraSize}")
+      logi(s"using width=${bestCameraSize.width} height=${bestCameraSize.height}")
       param.set("orientation", "portrait")
-      param.setPreviewSize(bestMinCameraSize, bestMinCameraSize)
+      //param.setPreviewSize(bestMinCameraSize, bestMinCameraSize)
+      param.setPreviewSize(bestCameraSize.width, bestCameraSize.height)
       param.setFocusMode("continuous-video")
       cam.setParameters(param)
       cam.startPreview()
