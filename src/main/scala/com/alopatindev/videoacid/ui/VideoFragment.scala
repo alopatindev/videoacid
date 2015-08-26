@@ -5,13 +5,19 @@ import android.content.Context
 
 import com.alopatindev.videoacid.R
 
+//import rx.lang.scala._
+
+//import language.postfixOps
+
+//import scala.concurrent.duration._
 import scala.util.Try
 
 class VideoFragment extends Fragment with FragmentUtils {
 
   import android.os.Bundle
   import android.view.{LayoutInflater, View, ViewGroup}
-  import android.widget.LinearLayout
+  import android.widget.{LinearLayout, SeekBar}
+  //import android.widget.SeekBar.OnSeekBarChangeListener
 
   import com.alopatindev.videoacid.Logs._
 
@@ -19,7 +25,21 @@ class VideoFragment extends Fragment with FragmentUtils {
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     logd("VideoFragment.onCreateView")
-    inflater.inflate(R.layout.video, container, false)
+
+    val newView = inflater.inflate(R.layout.video, container, false)
+
+    val madnessLevel = find[SeekBar](R.id.madnessLevel, newView)
+    madnessLevel.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener {
+      override def onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean): Unit = {
+        val madnessLevel = progress.toFloat / 100.0f
+        logi(s"madnessLevel=$madnessLevel")
+      }
+
+      override def onStartTrackingTouch(seekBar: SeekBar): Unit = ()
+      override def onStopTrackingTouch(seekBar: SeekBar): Unit = ()
+    })
+
+    newView
   }
 
   override def onPause(): Unit = {

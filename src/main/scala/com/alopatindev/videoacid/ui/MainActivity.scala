@@ -11,13 +11,12 @@ import scala.util.Try
 class MainActivity extends FragmentActivity with TypedFindView with ActivityUtils {
 
   import android.os.Bundle
-  import android.support.v4.view.ViewPager
   import android.view.Window
   import android.view.WindowManager
 
   import com.alopatindev.videoacid.Logs.logd
 
-  private lazy val pager = find[ViewPager](R.id.pager)
+  private lazy val pager = find[MainViewPager](R.id.pager)
 
   override def onCreate(bundle: Bundle): Unit = {
     logd("MainActivity.onCreate")
