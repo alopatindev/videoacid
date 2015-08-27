@@ -9,11 +9,9 @@ import android.opengl.GLES20
 
 import com.alopatindev.videoacid.{ApproxRandomizer, Utils}
 
-//import rx.lang.scala._
+import language.postfixOps
 
-//import language.postfixOps
-
-//import scala.concurrent.duration._
+import scala.concurrent.duration._
 import scala.util.Try
 
 import java.nio.ByteBuffer
@@ -49,26 +47,26 @@ class MainRenderer(val view: MainView) extends Object
 
   private lazy val vertsApproxRandomizer = new ApproxRandomizer(
     originalVector = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f),
-    factor = 1.5f,
-    speed = 2.0f,
-    updateInterval = 30L,
-    randUpdateInterval = 2000L
+    factor = 1.0f,
+    speed = 1.5f,
+    updateInterval = 30 millis,
+    randUpdateInterval = 2 seconds
   )
 
   private lazy val lightColorChangeApproxRandomizer = new ApproxRandomizer(
     originalVector = Vector(0.6f, 0.4f, 0.2f),
-    factor = 55.0f,
-    speed = 555.0f,
-    updateInterval = 30L,
-    randUpdateInterval = 2000L
+    factor = 10.0f,
+    speed = 8.0f,
+    updateInterval = 5 millis,
+    randUpdateInterval = 1 seconds
   )
 
   private lazy val darkColorChangeApproxRandomizer = new ApproxRandomizer(
     originalVector = Vector(0.8f, 0.4f, 0.4f),
-    factor = 6.7f,
-    speed = 50.0f,
-    updateInterval = 30L,
-    randUpdateInterval = 4000L
+    factor = 20.7f,
+    speed = 3.5f,
+    updateInterval = 30 millis,
+    randUpdateInterval = 4 seconds
   )
 
   private val verts: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
@@ -203,7 +201,6 @@ class MainRenderer(val view: MainView) extends Object
       surfaceTexture foreach { _.updateTexImage() }
 
       updateVerts()
-      updateOtherColors()
 
       drawNormal()
 
@@ -235,14 +232,8 @@ class MainRenderer(val view: MainView) extends Object
   }
 
   private def updateVerts(): Unit = {
-    vertsApproxRandomizer.update()
     verts.put(vertsApproxRandomizer.getCurrentArray())
     verts.position(0)
-  }
-
-  def updateOtherColors(): Unit = {
-    lightColorChangeApproxRandomizer.update()
-    darkColorChangeApproxRandomizer.update()
   }
 
   override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {

@@ -3,13 +3,8 @@ package com.alopatindev.videoacid.ui
 import android.support.v4.app.Fragment
 import android.content.Context
 
-import com.alopatindev.videoacid.R
+import com.alopatindev.videoacid.{ApproxRandomizer, R}
 
-//import rx.lang.scala._
-
-//import language.postfixOps
-
-//import scala.concurrent.duration._
 import scala.util.Try
 
 class VideoFragment extends Fragment with FragmentUtils {
@@ -17,9 +12,9 @@ class VideoFragment extends Fragment with FragmentUtils {
   import android.os.Bundle
   import android.view.{LayoutInflater, View, ViewGroup}
   import android.widget.{LinearLayout, SeekBar}
-  //import android.widget.SeekBar.OnSeekBarChangeListener
 
   import com.alopatindev.videoacid.Logs._
+  import ApproxRandomizer._
 
   private lazy val view = find[MainView](R.id.mainView)
 
@@ -31,13 +26,14 @@ class VideoFragment extends Fragment with FragmentUtils {
     val madnessLevel = find[SeekBar](R.id.madnessLevel, newView)
     madnessLevel.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener {
       override def onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean): Unit = {
-        val madnessLevel = progress.toFloat / 100.0f
-        logi(s"madnessLevel=$madnessLevel")
+        val madnessLevel = (MIN_MADNESS_LEVEL * 100.0f + progress) / 100.0f
+        ApproxRandomizer.madnessLevelChannel.onNext(madnessLevel)
       }
 
       override def onStartTrackingTouch(seekBar: SeekBar): Unit = ()
       override def onStopTrackingTouch(seekBar: SeekBar): Unit = ()
     })
+    madnessLevel.setProgress((MIN_MADNESS_LEVEL * 100.0f).toInt)
 
     newView
   }
