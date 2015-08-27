@@ -23,13 +23,13 @@ class ApproxRandomizer(val originalVector: Vector[Float],
   import scala.util.Random
 
   private val currentVectorObs = Observable.interval(updateInterval)
-  private val currentVectorSub = currentVectorObs.filter { i => {
+  private val currentVectorSub: Subscription = currentVectorObs.filter { i => {
     val d = ((MAX_MADNESS_LEVEL * 60.0f) / (madnessLevel * 60.0f)).toInt
     i % d == 0
   }} subscribe { _ => calcCurrentVector() }
 
   private val nextRandVectorObs = Observable.interval(randUpdateInterval)
-  private val nextRandVectorSub = nextRandVectorObs.filter { i => {
+  private val nextRandVectorSub: Subscription = nextRandVectorObs.filter { i => {
     val randAddition = rand.nextInt() % 1000
     //val randAddition = rand.nextInt(1000)
     val d = ((MAX_MADNESS_LEVEL * 60.0f) / (madnessLevel * 60.0f)).toInt

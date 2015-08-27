@@ -81,28 +81,33 @@ class MainRenderer(val view: MainView) extends Object
     logi(s"startCamera ${surfaceWidth} ${surfaceHeight}")
 
     Try {
-      camera = Some(Camera.open())
-      camera foreach { cam => {
+
+      val cameraOpt = Some(Camera.open())
+      cameraOpt foreach { cam => {
+        import scala.collection.JavaConversions._
+
         cam.lock()
         surfaceTexture foreach { cam.setPreviewTexture(_) }
+
+        val param = cam.getParameters()
+        val bestCameraSize = param
+          .getSupportedPreviewSizes()
+          .filter(item => item.width >= surfaceWidth || item.height >= surfaceHeight)
+          .last
+        logi(s"using width=${bestCameraSize.width} height=${bestCameraSize.height}")
+
+        param.set("orientation", "portrait")
+        param.setPreviewSize(bestCameraSize.width, bestCameraSize.height)
+        param.setFocusMode("continuous-video")
+
+        cam.setParameters(param)
+        cam.startPreview()
+
+        camera = cameraOpt
       }}
     }
 
-    camera foreach { cam => {
-      import scala.collection.JavaConversions._
-      val param = cam.getParameters()
-      val bestCameraSize = param.getSupportedPreviewSizes().filter(item => item.width >= surfaceWidth || item.height >= surfaceHeight).last
-      //val bestCameraSize = param.getSupportedPreviewSizes().sortBy(_.width).reverse.head
-      //val bestMinCameraSize = Math.min(bestCameraSize.width, bestCameraSize.height)
-      //logi(s"using width=${bestMinCameraSize}")
-      logi(s"using width=${bestCameraSize.width} height=${bestCameraSize.height}")
-      param.set("orientation", "portrait")
-      //param.setPreviewSize(bestMinCameraSize, bestMinCameraSize)
-      param.setPreviewSize(bestCameraSize.width, bestCameraSize.height)
-      param.setFocusMode("continuous-video")
-      cam.setParameters(param)
-      cam.startPreview()
-    }}
+    ()
   }
 
   def stopCamera(): Unit = {

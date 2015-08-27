@@ -16,6 +16,7 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.4" % "test",
   "com.android.support" % "support-v4" % "20.0.0",
   "io.reactivex" %% "rxscala" % "0.25.0"
+  //"io.reactivex" % "rxandroid" % "1.0.1"
 )
 
 // Repositories for dependencies
