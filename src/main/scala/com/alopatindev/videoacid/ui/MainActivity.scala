@@ -30,11 +30,25 @@ class MainActivity extends FragmentActivity with TypedFindView with ActivityUtil
   override def onResume(): Unit = {
     logd("MainActivity.onResume")
     super.onResume()
+    MainActivity.resumed = true
+  }
+
+  override def onPause(): Unit = {
+    logd("MainActivity.onPause")
+    super.onPause()
+    MainActivity.resumed = false
+  }
+
+  override def onStop(): Unit = {
+    logd("MainActivity.onStop")
+    super.onStop()
+    MainActivity.resumed = false
   }
 
   override def onDestroy(): Unit = {
     logd("MainActivity.onDestroy")
     super.onDestroy()
+    MainActivity.resumed = false
   }
 
   private def setupWindow() = {
@@ -47,5 +61,11 @@ class MainActivity extends FragmentActivity with TypedFindView with ActivityUtil
     val adapter = new MainPagerAdapter(getSupportFragmentManager(), this)
     pager setAdapter adapter
   }
+
+}
+
+object MainActivity {
+
+  @volatile var resumed = false
 
 }

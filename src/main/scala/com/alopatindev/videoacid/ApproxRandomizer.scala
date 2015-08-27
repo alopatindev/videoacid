@@ -15,20 +15,24 @@ class ApproxRandomizer(val originalVector: Vector[Float],
 
   import ApproxRandomizer._
 
-  import com.alopatindev.videoacid.ui.VideoFragment
+  import com.alopatindev.videoacid.ui.{MainActivity, VideoFragment}
   import com.alopatindev.videoacid.Logs._
 
   import rx.lang.scala.{Observable, Subscription}
 
   import scala.util.Random
 
-  private val currentVectorObs = Observable.interval(updateInterval)
+  private val currentVectorObs = Observable
+    .interval(updateInterval)
+    .filter(_ => MainActivity.resumed)
   private val currentVectorSub: Subscription = currentVectorObs.filter { i => {
     val d = ((MAX_MADNESS_LEVEL * 60.0f) / (madnessLevel * 60.0f)).toInt
     i % d == 0
   }} subscribe { _ => calcCurrentVector() }
 
-  private val nextRandVectorObs = Observable.interval(randUpdateInterval)
+  private val nextRandVectorObs = Observable
+    .interval(randUpdateInterval)
+    .filter(_ => MainActivity.resumed)
   private val nextRandVectorSub: Subscription = nextRandVectorObs.filter { i => {
     val randAddition = rand.nextInt() % 1000
     //val randAddition = rand.nextInt(1000)
