@@ -71,7 +71,10 @@ class ApproxRandomizer(val originalVector: Vector[Float],
         } else {
           newX < minX || newX > maxX
         }
-      if (outOfBounds) x
+      val randBoundedX = if (rand.nextInt(2) == 1) minX
+                         else maxX
+      //if (outOfBounds) x
+      if (outOfBounds) randBoundedX
       else newX
     }}
   }

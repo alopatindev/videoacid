@@ -57,21 +57,20 @@ class MainRenderer(val view: MainView) extends Object
   )
 
   private lazy val lightColorChangeApproxRandomizer = new ApproxRandomizer(
-    originalVector = Vector(0.6f, 0.4f, 0.2f),
-    //minVector = Vector(0.51f, 0.51f, 0.51f),
-    minVector = Vector(0.8f, 0.8f, 0.8f),
+    originalVector = Vector(0.7f, 0.7f, 0.7f),
+    minVector = Vector(0.7f, 0.7f, 0.7f),
     maxVector = Vector(1.0f, 1.0f, 1.0f),
     minFactor = 0.2f,
     maxFactor = 55.0f,
-    speed = 30.0f,
+    speed = 30.0f * 8.0f,
     updateInterval = 30 millis,
     randUpdateInterval = 500 millis
   )
 
   private lazy val darkColorChangeApproxRandomizer = new ApproxRandomizer(
-    originalVector = Vector(0.8f, 0.4f, 0.4f),
+    originalVector = Vector(0.2f, 0.2f, 0.2f),
     minVector = Vector(0.0f, 0.0f, 0.0f),
-    maxVector = Vector(0.5f, 0.5f, 0.5f),
+    maxVector = Vector(0.6f, 0.6f, 0.6f),
     minFactor = 0.2f,
     maxFactor = 20.7f,
     speed = 20.5f,
@@ -184,7 +183,6 @@ class MainRenderer(val view: MainView) extends Object
 
       val vOtherColor: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "vOtherColor")
       val otherColor: Vector[Float] = lightColorChangeApproxRandomizer.getCurrentVector()
-      logi(s"lol $otherColor")
       GLES20.glUniform3f(vOtherColor, otherColor(0), otherColor(1), otherColor(2))
 
       val fLow: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fLow")
