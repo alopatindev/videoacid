@@ -48,7 +48,7 @@ class MainRenderer(val view: MainView) extends Object
   private lazy val vertsApproxRandomizer = new ApproxRandomizer(
     minVector = screenBounds map { x => if (x < 0.0f) x * screenRandFactor else x },
     maxVector = screenBounds,
-    speed = 10.0f,
+    speed = 6.0f,
     updateInterval = 30 millis,
     randUpdateInterval = 2 seconds,
     debug = true

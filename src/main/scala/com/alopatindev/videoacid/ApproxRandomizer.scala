@@ -18,7 +18,6 @@ class ApproxRandomizer(val minVector: Vector[Float],
   import com.alopatindev.videoacid.ui.{MainActivity, VideoFragment}
   import com.alopatindev.videoacid.Logs._
 
-  import java.lang.Math.abs
   import rx.lang.scala.{Observable, Subscription}
 
   import scala.util.Random
@@ -30,7 +29,7 @@ class ApproxRandomizer(val minVector: Vector[Float],
 
   private val currentVectorSubs: Subscription = Observable
     .interval(updateInterval)
-    .filter{ _ => MainActivity.resumed }
+    .filter { _ => MainActivity.resumed }
     .subscribe { _ => calcCurrentVector() }
 
   private val nextRandVectorSub: Subscription = Observable
@@ -60,9 +59,14 @@ class ApproxRandomizer(val minVector: Vector[Float],
     def randBetween(a: Float, b: Float): Float = {
       val delta = b - a
       val scaledDelta = delta * madnessLocal
-      val randNum = rand.nextFloat()
+      //val randNum = rand.nextFloat()
+      val randGauss = (0.5 + rand.nextGaussian() / 8.0).toFloat
+      val randNum = clamp(randGauss, 0.0f, 1.0f)
       val value = a + randNum * scaledDelta
-      assert (value >= a && value <= b)
+
+      assert(randNum >= 0.0f && randNum <= 1.0f, s"$randNum is out of [0 .. 1]")
+      assert(value >= a && value <= b, s"value $value is out of [$a .. $b]")
+
       value
     }
 
@@ -70,11 +74,13 @@ class ApproxRandomizer(val minVector: Vector[Float],
       .map { case (a, b) => randBetween(a, b) }
   }
 
-  private def almostEqualVectors(a: Vector[Float], b: Vector[Float]): Boolean =
+  private def almostEqualVectors(a: Vector[Float], b: Vector[Float]): Boolean = {
+    val madnessLocal = ApproxRandomizer.madness
     (a zip b)
-      .map { case (a, b) => abs(a - b) <= smooth * 2.0f }
+      .map { case (a, b) => Math.abs(a - b) <= smooth * madnessLocal }
       .filter { small => small }
       .length == a.length
+  }
 
   private def calcCurrentVector(): Unit = {
     //val madnessLocal = ApproxRandomizer.madness
@@ -96,10 +102,12 @@ class ApproxRandomizer(val minVector: Vector[Float],
       val acc = if (c < n) step
                 else -step
       val next = c + acc
-      val found = abs(next - n) <= step
+      val found = Math.abs(next - n) <= step
       if (found) c
       else next
     }}
+
+  private def clamp(x: Float, low: Float, high: Float): Float = Math.min(Math.max(x, low), high)
 
 }
 
