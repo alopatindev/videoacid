@@ -7,6 +7,7 @@ varying vec2 texCoord;
 uniform vec3 vOtherColor;
 uniform float fLow;
 uniform float fHigh;
+uniform float fMadness;
 
 void main() {
   vec4 tex = texture2D(sTexture, texCoord);
@@ -21,5 +22,5 @@ void main() {
     discard;
   }
 
-  gl_FragColor = vec4(otherColor, alpha);
+  gl_FragColor = vec4(otherColor, alpha * fMadness);
 }

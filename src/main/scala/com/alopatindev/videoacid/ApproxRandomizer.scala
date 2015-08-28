@@ -13,34 +13,30 @@ class ApproxRandomizer(val minVector: Vector[Float],
                        val smooth: Float = 0.001f,
                        val debug: Boolean = false) {
 
-  import ApproxRandomizer._
-
   import com.alopatindev.videoacid.ui.{MainActivity, VideoFragment}
+  import com.alopatindev.videoacid.ConcurrencyUtils.newObservableInterval
   import com.alopatindev.videoacid.Logs._
 
-  import rx.lang.scala.{Observable, Subscription}
+  import rx.lang.scala.Subscription
 
   import scala.util.Random
 
-  private def log(text: String): Unit = if (debug) logd(text)
-                                        else ()
+  private def log(text: String): Unit = if (debug) logd(text) else ()
 
   val secsInMinute = 60.0f
 
-  private val currentVectorSubs: Subscription = Observable
-    .interval(updateInterval)
-    .filter { _ => MainActivity.resumed }
+  private val currentVectorSubs: Subscription = newObservableInterval(updateInterval)
+    .filter { _ => MainActivity.isResumed() }
     .subscribe { _ => calcCurrentVector() }
 
-  private val nextRandVectorSub: Subscription = Observable
-    .interval(randUpdateInterval)
+  private val nextRandVectorSub: Subscription = newObservableInterval(randUpdateInterval)
     .filter(i => {
       val randNum = rand.nextInt() % 4000
       val madnessLocal = ApproxRandomizer.madness
       def divider = (secsInMinute / (randNum * secsInMinute)).toInt
       def tickMatch = (i + randNum) % divider == 0
       val safe = madnessLocal > 0.0f && divider > 0
-      MainActivity.resumed && safe && tickMatch
+      MainActivity.isResumed() && safe && tickMatch
     })
     .subscribe { _ => calcNextRandVector() }
 
@@ -53,7 +49,6 @@ class ApproxRandomizer(val minVector: Vector[Float],
   private val rand = new Random
 
   private def calcNextRandVector(): Unit = {
-    log("calcNextRandVector")
     val madnessLocal = ApproxRandomizer.madness
 
     def randBetween(a: Float, b: Float): Float = {
@@ -115,7 +110,7 @@ object ApproxRandomizer {
 
   @volatile private var madness_ = 0.0f
 
-  def madness = madness_
+  def madness: Float = madness_
 
   def setMadness(m: Float): Unit = {
     madness_ = m

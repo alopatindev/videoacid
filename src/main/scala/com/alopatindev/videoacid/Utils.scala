@@ -3,16 +3,11 @@ package com.alopatindev.videoacid
 object Utils {
 
   import android.content.Context
-  import android.os.{Handler, Looper}
 
-  import scala.concurrent.{Future, Promise}
   import scala.io.Source
   import scala.util.Try
 
   import java.io.InputStream
-
-  lazy val uiHandler = new Handler(Looper.getMainLooper)
-  lazy val uiThread = Looper.getMainLooper.getThread
 
   def loadAsset(path: String)(implicit ctx: Context): Option[String] = Try {
     val in: InputStream = ctx.getAssets().open(path)
@@ -22,40 +17,6 @@ object Utils {
   }.toOption
 
   def getString(id: Int)(implicit ctx: Context): String = ctx.getString(id)
-
-  def runOnHandler(handler: Handler, f: => Unit, delay: Int = 0) = {
-    val runnable = new Runnable() {
-      override def run() = f
-    }
-    if (delay > 0) {
-      handler postDelayed (runnable, delay)
-    } else {
-      handler post runnable
-    }
-  }
-
-  def runOnUIThread(f: => Unit, delay: Int = 0): Unit =
-    if (uiThread == Thread.currentThread) {
-      f
-    } else {
-      runOnHandler(uiHandler, f, delay)
-    }
-
-  def evalOnUIThread[T](f: => T, delay: Int = 0): Future[T] =
-    if (uiThread == Thread.currentThread) {
-      Future.fromTry(Try(f))
-    } else {
-      val p = Promise[T]()
-      val runnable = new Runnable() {
-        override def run() = p.complete(Try(f))
-      }
-      if (delay > 0) {
-        uiHandler postDelayed (runnable, delay)
-      } else {
-        uiHandler post runnable
-      }
-      p.future
-    }
 
   def appVersion()(implicit ctx: Context): String =
     Try[String] {

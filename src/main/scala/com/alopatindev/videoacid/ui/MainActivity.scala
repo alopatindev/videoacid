@@ -30,25 +30,25 @@ class MainActivity extends FragmentActivity with TypedFindView with ActivityUtil
   override def onResume(): Unit = {
     logd("MainActivity.onResume")
     super.onResume()
-    MainActivity.resumed = true
+    MainActivity.setResumed(true)
   }
 
   override def onPause(): Unit = {
     logd("MainActivity.onPause")
     super.onPause()
-    MainActivity.resumed = false
+    MainActivity.setResumed(false)
   }
 
   override def onStop(): Unit = {
     logd("MainActivity.onStop")
     super.onStop()
-    MainActivity.resumed = false
+    MainActivity.setResumed(false)
   }
 
   override def onDestroy(): Unit = {
     logd("MainActivity.onDestroy")
     super.onDestroy()
-    MainActivity.resumed = false
+    MainActivity.setResumed(false)
   }
 
   private def setupWindow() = {
@@ -66,6 +66,23 @@ class MainActivity extends FragmentActivity with TypedFindView with ActivityUtil
 
 object MainActivity {
 
-  @volatile var resumed = false
+  import com.alopatindev.videoacid.ConcurrencyUtils._
+
+  private lazy val threadId: Long = currentThreadId()
+  private var resumed = false
+
+  def isResumed(): Boolean = {
+    assert(threadId == currentThreadId())
+    resumed
+  }
+
+  def setResumed(value: Boolean): Unit = {
+    executor.execute(new Runnable {
+      override def run(): Unit = {
+        assert(threadId == currentThreadId())
+        resumed = value
+      }
+    })
+  }
 
 }

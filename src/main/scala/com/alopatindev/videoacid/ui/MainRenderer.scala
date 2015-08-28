@@ -43,6 +43,9 @@ class MainRenderer(val view: MainView) extends Object
 
   private var surfaceTexture: Option[SurfaceTexture] = None
 
+  private val lightMonochromeColorRange: (Float, Float) = (0.51f, 1.0f)
+  private val darkMonochromeColorRange: (Float, Float) = (0.0f, 0.5f)
+
   private val screenRandFactor = 1.5f
   private val screenBounds = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f)
   private lazy val vertsApproxRandomizer = new ApproxRandomizer(
@@ -50,13 +53,13 @@ class MainRenderer(val view: MainView) extends Object
     maxVector = screenBounds,
     speed = 6.0f,
     updateInterval = 30 millis,
-    randUpdateInterval = 2 seconds,
-    debug = true
+    randUpdateInterval = 2 seconds
+    //debug = true
   )
 
   private lazy val lightColorChangeApproxRandomizer = new ApproxRandomizer(
-    minVector = Vector(0.4f, 0.2f, 0.1f),
-    maxVector = Vector(1.0f, 0.83f, 0.7f),
+    minVector = Vector(0.0f, 0.0f, 0.0f),
+    maxVector = Vector(1.0f, 1.0f, 1.0f),
     speed = 10.0f,
     updateInterval = 30 millis,
     randUpdateInterval = 2 seconds
@@ -64,7 +67,7 @@ class MainRenderer(val view: MainView) extends Object
 
   private lazy val darkColorChangeApproxRandomizer = new ApproxRandomizer(
     minVector = Vector(0.0f, 0.0f, 0.0f),
-    maxVector = Vector(0.8f, 0.9f, 0.5f),
+    maxVector = Vector(1.0f, 1.0f, 1.0f),
     speed = 10.5f,
     updateInterval = 30 millis,
     randUpdateInterval = 4 seconds
@@ -161,6 +164,8 @@ class MainRenderer(val view: MainView) extends Object
   }
  
   override def onDrawFrame(unused: GL10): Unit = {
+    val madnessLocal = ApproxRandomizer.madness
+
     def drawNormal(): Unit = {
       GLES20.glUseProgram(mainShaderProgram)
 
@@ -179,8 +184,10 @@ class MainRenderer(val view: MainView) extends Object
 
       val fLow: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fLow")
       val fHigh: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fHigh")
-      GLES20.glUniform1f(fLow, 0.51f)
-      GLES20.glUniform1f(fHigh, 1.0f)
+      val fMadness: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fMadness")
+      GLES20.glUniform1f(fLow, lightMonochromeColorRange._1)
+      GLES20.glUniform1f(fHigh, lightMonochromeColorRange._2)
+      GLES20.glUniform1f(fMadness, madnessLocal)
 
       val fAngle: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fAngle")
       GLES20.glUniform1f(fAngle, cameraAngle)
@@ -197,8 +204,10 @@ class MainRenderer(val view: MainView) extends Object
 
       val fLow: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fLow")
       val fHigh: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fHigh")
-      GLES20.glUniform1f(fLow, 0.0f)
-      GLES20.glUniform1f(fHigh, 0.5f)
+      val fMadness: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fMadness")
+      GLES20.glUniform1f(fLow, darkMonochromeColorRange._1)
+      GLES20.glUniform1f(fHigh, darkMonochromeColorRange._2)
+      GLES20.glUniform1f(fMadness, madnessLocal)
 
       val fAngle: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fAngle")
       GLES20.glUniform1f(fAngle, cameraAngle)
