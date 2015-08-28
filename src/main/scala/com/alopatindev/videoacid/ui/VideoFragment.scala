@@ -13,8 +13,7 @@ class VideoFragment extends Fragment with FragmentUtils {
   import android.view.{LayoutInflater, View, ViewGroup}
   import android.widget.{LinearLayout, SeekBar}
 
-  import com.alopatindev.videoacid.Logs._
-  import ApproxRandomizer._
+  import com.alopatindev.videoacid.Logs.logd
 
   private lazy val view = find[MainView](R.id.mainView)
 
@@ -50,8 +49,8 @@ class VideoFragment extends Fragment with FragmentUtils {
     logd("VideoFragment.onResume")
     super.onResume()
     Try {
-      //val width = view.getWidth()
-      //view.setLayoutParams(new LinearLayout.LayoutParams(width, width))
+      // val width = view.getWidth()
+      // view.setLayoutParams(new LinearLayout.LayoutParams(width, width))
       view.onResume()
     }
   }

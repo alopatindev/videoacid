@@ -2,7 +2,7 @@ package com.alopatindev.videoacid
 
 import language.postfixOps
 
-import scala.concurrent.duration._
+import scala.concurrent.duration._  // scalastyle:ignore
 
 class ApproxRandomizer(val minVector: Vector[Float],
                        val maxVector: Vector[Float],
@@ -15,7 +15,7 @@ class ApproxRandomizer(val minVector: Vector[Float],
 
   import com.alopatindev.videoacid.ui.{MainActivity, VideoFragment}
   import com.alopatindev.videoacid.ConcurrencyUtils.newObservableInterval
-  import com.alopatindev.videoacid.Logs._
+  import com.alopatindev.videoacid.Logs.logd
 
   import rx.lang.scala.Subscription
 
@@ -54,7 +54,7 @@ class ApproxRandomizer(val minVector: Vector[Float],
     def randBetween(a: Float, b: Float): Float = {
       val delta = b - a
       val scaledDelta = delta * madnessLocal
-      //val randNum = rand.nextFloat()
+      // val randNum = rand.nextFloat()
       val randGauss = (0.5 + rand.nextGaussian() / 8.0).toFloat
       val randNum = clamp(randGauss, 0.0f, 1.0f)
       val value = a + randNum * scaledDelta
@@ -78,11 +78,11 @@ class ApproxRandomizer(val minVector: Vector[Float],
   }
 
   private def calcCurrentVector(): Unit = {
-    //val madnessLocal = ApproxRandomizer.madness
+    // val madnessLocal = ApproxRandomizer.madness
     val currentVectorLocal = currentVector
     val newCurrentVector = approxStep(current = currentVectorLocal, next = nextRandVector, step = smooth * speed)
-    //val approxCompleted = currentVectorLocal == newCurrentVector // FIXME: delta <= smooth?
-    //val approxCompleted = madnessLocal > 0.5f && almostEqualVectors(currentVectorLocal, newCurrentVector)
+    // val approxCompleted = currentVectorLocal == newCurrentVector // FIXME: delta <= smooth?
+    // val approxCompleted = madnessLocal > 0.5f && almostEqualVectors(currentVectorLocal, newCurrentVector)
     val approxCompleted = almostEqualVectors(currentVectorLocal, newCurrentVector)
     if (approxCompleted)
       calcNextRandVector()

@@ -16,7 +16,7 @@ object ConcurrencyUtils {
   lazy val uiHandler = new Handler(Looper.getMainLooper)
   lazy val uiThread = Looper.getMainLooper.getThread
 
-  //private val executorService: ExecutorService = Executors.newFixedThreadPool(2)
+  // private val executorService: ExecutorService = Executors.newFixedThreadPool(2)
   private val executorService: ExecutorService = Executors.newSingleThreadExecutor()
   implicit val executor: ExecutionContext = ExecutionContext.fromExecutor(executorService)
   val scheduler: Scheduler = ExecutionContextScheduler(executor)
@@ -28,7 +28,7 @@ object ConcurrencyUtils {
     .observeOn(scheduler)
     .subscribeOn(scheduler)
 
-  def runOnHandler(handler: Handler, f: => Unit, delay: Int = 0) = {
+  def runOnHandler(handler: Handler, f: => Unit, delay: Int = 0): Unit = {
     val runnable = new Runnable() {
       override def run() = f
     }

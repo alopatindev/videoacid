@@ -8,7 +8,7 @@ class MainView(context: Context, attrs: AttributeSet) extends GLSurfaceView(cont
 
   import android.view.SurfaceHolder
 
-  import com.alopatindev.videoacid.Logs._
+  import com.alopatindev.videoacid.Logs.logd
 
   private val renderer = new MainRenderer(this)
 
@@ -21,13 +21,13 @@ class MainView(context: Context, attrs: AttributeSet) extends GLSurfaceView(cont
     logd("MainView.surfaceCreated")
     super.surfaceCreated(holder)
   }
- 
+
   override def surfaceDestroyed(holder: SurfaceHolder): Unit = {
     logd("MainView.surfaceDestroyed")
     renderer.stopCamera()
     super.surfaceDestroyed(holder)
   }
- 
+
   override def surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int): Unit = {
     logd("MainView.surfaceChanged")
     super.surfaceChanged(holder, format, width, height)

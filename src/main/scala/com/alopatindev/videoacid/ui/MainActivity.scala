@@ -66,7 +66,7 @@ class MainActivity extends FragmentActivity with TypedFindView with ActivityUtil
 
 object MainActivity {
 
-  import com.alopatindev.videoacid.ConcurrencyUtils._
+  import com.alopatindev.videoacid.ConcurrencyUtils.{currentThreadId, executor}
 
   private lazy val threadId: Long = currentThreadId()
   private var resumed = false

@@ -10,7 +10,7 @@ class GalleryFragment extends Fragment with FragmentUtils {
   import android.os.Bundle
   import android.view.{LayoutInflater, View, ViewGroup}
 
-  import com.alopatindev.videoacid.Logs._
+  import com.alopatindev.videoacid.Logs.logd
 
   override def onCreateView(inflater: LayoutInflater, container: ViewGroup, savedInstanceState: Bundle): View = {
     logd("GalleryFragment.onCreateView")
