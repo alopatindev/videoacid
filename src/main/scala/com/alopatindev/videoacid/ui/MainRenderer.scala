@@ -43,39 +43,31 @@ class MainRenderer(val view: MainView) extends Object
 
   private var surfaceTexture: Option[SurfaceTexture] = None
 
+  private val screenRandFactor = 1.5f
   private val screenBounds = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f)
   private lazy val vertsApproxRandomizer = new ApproxRandomizer(
-    originalVector = screenBounds,
-    minVector = screenBounds,
-    maxVector = screenBounds map { _ * 2.0f},
-    absBoundsCheck = true,
-    minFactor = 0.2f,
-    maxFactor = 1.5f,
+    minVector = screenBounds map { x => if (x < 0.0f) x * screenRandFactor else x },
+    maxVector = screenBounds,
+    speed = 10.0f,
+    updateInterval = 30 millis,
+    randUpdateInterval = 2 seconds,
+    debug = true
+  )
+
+  private lazy val lightColorChangeApproxRandomizer = new ApproxRandomizer(
+    minVector = Vector(0.4f, 0.2f, 0.1f),
+    maxVector = Vector(1.0f, 0.83f, 0.7f),
     speed = 10.0f,
     updateInterval = 30 millis,
     randUpdateInterval = 2 seconds
   )
 
-  private lazy val lightColorChangeApproxRandomizer = new ApproxRandomizer(
-    originalVector = Vector(0.7f, 0.7f, 0.7f),
-    minVector = Vector(0.7f, 0.7f, 0.7f),
-    maxVector = Vector(1.0f, 1.0f, 1.0f),
-    minFactor = 0.2f,
-    maxFactor = 55.0f,
-    speed = 30.0f * 8.0f,
-    updateInterval = 30 millis,
-    randUpdateInterval = 500 millis
-  )
-
   private lazy val darkColorChangeApproxRandomizer = new ApproxRandomizer(
-    originalVector = Vector(0.2f, 0.2f, 0.2f),
     minVector = Vector(0.0f, 0.0f, 0.0f),
-    maxVector = Vector(0.6f, 0.6f, 0.6f),
-    minFactor = 0.2f,
-    maxFactor = 20.7f,
-    speed = 20.5f,
+    maxVector = Vector(0.8f, 0.9f, 0.5f),
+    speed = 10.5f,
     updateInterval = 30 millis,
-    randUpdateInterval = 600 millis
+    randUpdateInterval = 4 seconds
   )
 
   private def newFloatBuffer(size: Int = 8 * 4) = ByteBuffer
