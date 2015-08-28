@@ -23,17 +23,17 @@ class VideoFragment extends Fragment with FragmentUtils {
 
     val newView = inflater.inflate(R.layout.video, container, false)
 
-    val madnessLevel = find[SeekBar](R.id.madnessLevel, newView)
-    madnessLevel.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener {
+    val madness = find[SeekBar](R.id.madness, newView)
+    madness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener {
       override def onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean): Unit = {
-        val madnessLevel = (MIN_MADNESS_LEVEL * 100.0f + progress) / 100.0f
-        ApproxRandomizer.madnessLevelChannel.onNext(madnessLevel)
+        val madnessLevel = progress / 100.0f
+        ApproxRandomizer.setMadness(madnessLevel)
       }
 
       override def onStartTrackingTouch(seekBar: SeekBar): Unit = ()
       override def onStopTrackingTouch(seekBar: SeekBar): Unit = ()
     })
-    madnessLevel.setProgress((MIN_MADNESS_LEVEL * 100.0f).toInt)
+    madness.setProgress(0)
 
     newView
   }

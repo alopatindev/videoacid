@@ -42,37 +42,52 @@ class MainRenderer(val view: MainView) extends Object
   private val cameraAngle: Float = -0.5f * Math.PI.toFloat
 
   private var surfaceTexture: Option[SurfaceTexture] = None
-  //private lazy val screenRatio: Float = view.getHeight().toFloat / view.getWidth().toFloat
-  private lazy val screenRatio = 1.0f
 
+  private val screenBounds = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f)
   private lazy val vertsApproxRandomizer = new ApproxRandomizer(
-    originalVector = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f),
-    factor = 1.0f,
-    speed = 1.5f,
+    originalVector = screenBounds,
+    minVector = screenBounds,
+    maxVector = screenBounds map { _ * 2.0f},
+    absBoundsCheck = true,
+    minFactor = 0.2f,
+    maxFactor = 1.5f,
+    speed = 10.0f,
     updateInterval = 30 millis,
     randUpdateInterval = 2 seconds
   )
 
   private lazy val lightColorChangeApproxRandomizer = new ApproxRandomizer(
     originalVector = Vector(0.6f, 0.4f, 0.2f),
-    factor = 10.0f,
-    speed = 8.0f,
-    updateInterval = 5 millis,
-    randUpdateInterval = 1 seconds
+    //minVector = Vector(0.51f, 0.51f, 0.51f),
+    minVector = Vector(0.8f, 0.8f, 0.8f),
+    maxVector = Vector(1.0f, 1.0f, 1.0f),
+    minFactor = 0.2f,
+    maxFactor = 55.0f,
+    speed = 30.0f,
+    updateInterval = 30 millis,
+    randUpdateInterval = 500 millis
   )
 
   private lazy val darkColorChangeApproxRandomizer = new ApproxRandomizer(
     originalVector = Vector(0.8f, 0.4f, 0.4f),
-    factor = 20.7f,
-    speed = 3.5f,
+    minVector = Vector(0.0f, 0.0f, 0.0f),
+    maxVector = Vector(0.5f, 0.5f, 0.5f),
+    minFactor = 0.2f,
+    maxFactor = 20.7f,
+    speed = 20.5f,
     updateInterval = 30 millis,
-    randUpdateInterval = 4 seconds
+    randUpdateInterval = 600 millis
   )
 
-  private val verts: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
+  private def newFloatBuffer(size: Int = 8 * 4) = ByteBuffer
+    .allocateDirect(size)
+    .order(ByteOrder.nativeOrder)
+    .asFloatBuffer()
+
+  private val verts: FloatBuffer = newFloatBuffer()
   updateVerts()
 
-  private val uvCoords: FloatBuffer = ByteBuffer.allocateDirect(8*4).order(ByteOrder.nativeOrder()).asFloatBuffer()
+  private val uvCoords: FloatBuffer = newFloatBuffer()
   uvCoords.put(Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.0f, 0.0f,0.0f))
   uvCoords.position(0)
 
@@ -169,6 +184,7 @@ class MainRenderer(val view: MainView) extends Object
 
       val vOtherColor: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "vOtherColor")
       val otherColor: Vector[Float] = lightColorChangeApproxRandomizer.getCurrentVector()
+      logi(s"lol $otherColor")
       GLES20.glUniform3f(vOtherColor, otherColor(0), otherColor(1), otherColor(2))
 
       val fLow: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, "fLow")
