@@ -4,6 +4,8 @@ object ConcurrencyUtils {
 
   import android.os.{Handler, Looper}
 
+  import com.alopatindev.videoacid.Logs.logd
+
   import java.util.concurrent.{Executors, ExecutorService}
 
   import rx.lang.scala.{Observable, Scheduler, Subscription}
@@ -25,6 +27,8 @@ object ConcurrencyUtils {
   val scheduler: Scheduler = ExecutionContextScheduler(executor)
 
   def currentThreadId(): Long = Thread.currentThread().getId()
+  def currentThreadName(): String = Thread.currentThread().getName()
+  def printCurrentThreadDetails(): Unit = logd(s"current thread id=${currentThreadId()} name='${currentThreadName()}'")
 
   def newObservableInterval(interval: Duration): Observable[Long] = Observable
     .interval(interval)

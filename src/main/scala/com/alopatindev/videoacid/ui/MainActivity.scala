@@ -51,13 +51,13 @@ class MainActivity extends FragmentActivity with TypedFindView with ActivityUtil
     MainActivity.setResumed(false)
   }
 
-  private def setupWindow() = {
+  private def setupWindow(): Unit = {
     requestWindowFeature(Window.FEATURE_NO_TITLE)
     getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
     getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
   }
 
-  private def createTabs() = {
+  private def createTabs(): Unit = {
     val adapter = new MainPagerAdapter(getSupportFragmentManager(), this)
     pager setAdapter adapter
   }
