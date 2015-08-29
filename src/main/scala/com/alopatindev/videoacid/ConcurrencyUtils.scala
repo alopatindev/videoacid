@@ -9,8 +9,11 @@ object ConcurrencyUtils {
   import rx.lang.scala.{Observable, Scheduler, Subscription}
   import rx.lang.scala.schedulers.ExecutionContextScheduler
 
+  import language.postfixOps
+
   import scala.concurrent.{ExecutionContext, Future, Promise}
-  import scala.concurrent.duration.Duration
+  import scala.concurrent.duration._  // scalastyle:ignore
+
   import scala.util.Try
 
   lazy val uiHandler = new Handler(Looper.getMainLooper)
@@ -28,23 +31,18 @@ object ConcurrencyUtils {
     .observeOn(scheduler)
     .subscribeOn(scheduler)
 
-  def runOnHandler(handler: Handler, f: => Unit, delay: Int = 0): Unit = {
+  def runOnHandler(handler: Handler, f: => Unit, delay: Duration = 0.millis): Unit = {
     val runnable = new Runnable() {
       override def run() = f
     }
-    if (delay > 0) {
-      handler postDelayed (runnable, delay)
+    if (delay > 0.millis) {
+      handler postDelayed (runnable, delay.toMillis)
     } else {
       handler post runnable
     }
   }
 
-  def runOnUIThread(f: => Unit, delay: Int = 0): Unit =
-    if (uiThread == Thread.currentThread) {
-      f
-    } else {
-      runOnHandler(uiHandler, f, delay)
-    }
+  def runOnUIThread(f: => Unit, delay: Duration = 0.millis): Unit = runOnHandler(uiHandler, f, delay)
 
   def evalOnUIThread[T](f: => T, delay: Int = 0): Future[T] =
     if (uiThread == Thread.currentThread) {

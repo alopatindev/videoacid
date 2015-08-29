@@ -174,22 +174,34 @@ class MainRenderer(val view: MainView) extends Object
     GLES20.glUniform1i(sTexture, 0)
   }
 
-  private def applyShader(shaderProgram: Int, args: List[(String, Any)]): Unit = {
-    GLES20.glUseProgram(shaderProgram)
-    args foreach { case (argName: String, argValue: Any) =>
-      val argId: Int = GLES20.glGetUniformLocation(shaderProgram, argName)
-      argValue match {
-        case num: Float => GLES20.glUniform1f(argId, num)
-        case vec: Vector[Float @unchecked] => vec.length match {
-          case 2 => GLES20.glUniform2f(argId, vec(0), vec(1))
-          case 3 => GLES20.glUniform3f(argId, vec(0), vec(1), vec(2))
-          case _ => throw new IllegalArgumentException
-        }
-        case _ => throw new IllegalArgumentException
-      }
+  override def onDrawFrame(unused: GL10): Unit = {
+    GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
+
+    surfaceTexture foreach { _.updateTexImage() }
+
+    updateVerts()
+
+    drawNormal()
+
+    withBlend {
+      val madnessLocal = ApproxRandomizer.madness
+      drawLightMonochrome(madnessLocal)
+      drawDarkMonochrome(madnessLocal)
     }
-    GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+
+    // GLES20.glFlush()
+    // GLES20.glFinish()
   }
+
+  override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
+    logd(s"onSurfaceChanged")
+
+    startCamera(width, height)
+
+    GLES20.glViewport(0, 0, width, height)
+  }
+
+  override def onFrameAvailable(st: SurfaceTexture): Unit = view.requestRender()
 
   private def drawNormal(): Unit = applyShader(mainShaderProgram, List((ShaderInputs.angle, cameraAngle)))
 
@@ -211,30 +223,25 @@ class MainRenderer(val view: MainView) extends Object
       (ShaderInputs.angle, cameraAngle)
     ))
 
-  override def onDrawFrame(unused: GL10): Unit = {
-    val madnessLocal = ApproxRandomizer.madness
-
-    GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
-
-    surfaceTexture foreach { _.updateTexImage() }
-
-    updateVerts()
-
-    drawNormal()
-
-    GLES20.glEnable(GLES20.GL_BLEND)
-    configureBlending()
-
-    drawLightMonochrome(madnessLocal)
-    drawDarkMonochrome(madnessLocal)
-
-    GLES20.glDisable(GLES20.GL_BLEND)
-
-    // GLES20.glFlush()
-    // GLES20.glFinish()
+  private def applyShader(shaderProgram: Int, args: List[(String, Any)]): Unit = {
+    GLES20.glUseProgram(shaderProgram)
+    args foreach { case (argName: String, argValue: Any) =>
+      val argId: Int = GLES20.glGetUniformLocation(shaderProgram, argName)
+      argValue match {
+        case num: Float => GLES20.glUniform1f(argId, num)
+        case vec: Vector[Float @unchecked] => vec.length match {
+          case 2 => GLES20.glUniform2f(argId, vec(0), vec(1))
+          case 3 => GLES20.glUniform3f(argId, vec(0), vec(1), vec(2))
+          case _ => throw new IllegalArgumentException
+        }
+        case _ => throw new IllegalArgumentException
+      }
+    }
+    GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
   }
 
-  private def configureBlending(): Unit = {
+  private def withBlend(f: => Unit): Unit = {
+    GLES20.glEnable(GLES20.GL_BLEND)
     // GLES20.glBlendFunc(GLES20.GL_ONE, GLES20.GL_ONE_MINUS_SRC_ALPHA)
     // GLES20.glDepthMask(false)
     // GLES20.glClearDepthf(1.0f)
@@ -244,19 +251,15 @@ class MainRenderer(val view: MainView) extends Object
     GLES20.glDepthMask(false)
     GLES20.glClearDepthf(1.0f)
     GLES20.glCullFace(GLES20.GL_BACK)
+
+    f
+
+    GLES20.glDisable(GLES20.GL_BLEND)
   }
 
   private def updateVerts(): Unit = {
     verts.put(vertsApproxRandomizer.getCurrentArray())
     verts.position(0)
-  }
-
-  override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
-    logd(s"onSurfaceChanged")
-
-    startCamera(width, height)
-
-    GLES20.glViewport(0, 0, width, height)
   }
 
   private def initTexture(): Unit = {
@@ -275,8 +278,6 @@ class MainRenderer(val view: MainView) extends Object
   }
 
   private def deleteTex(): Unit = GLES20.glDeleteTextures(1, texture, 0)
-
-  override def onFrameAvailable(st: SurfaceTexture): Unit = view.requestRender()
 
   private def loadShader(vss: Option[String], fss: Option[String]): Int = {
     val vshader: Int = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER)
