@@ -16,11 +16,11 @@ void main() {
   float bw = (tex.r + tex.g + tex.b) * 0.33;
   float low = fLow;
   float high = fHigh;
-  float alpha = 0.5;
+  float alpha = 0.5 * fMadness;
 
   if (bw < low || bw > high) {
     discard;
   }
 
-  gl_FragColor = vec4(otherColor, alpha * fMadness);
+  gl_FragColor = vec4(otherColor, alpha);
 }

@@ -84,15 +84,17 @@ class MainRenderer(val view: MainView) extends Object
     randUpdateInterval = 4 seconds
   )
 
-  private def newFloatBuffer(size: Int = 8 * 4) = ByteBuffer
-    .allocateDirect(size)
+  private val VERTS_NUMBER = 8
+  private val BYTES_PER_FLOAT = 4
+  private def newFloatBuffer(size: Int) = ByteBuffer
+    .allocateDirect(size * BYTES_PER_FLOAT)
     .order(ByteOrder.nativeOrder)
     .asFloatBuffer()
 
-  private val verts: FloatBuffer = newFloatBuffer()
+  private val verts: FloatBuffer = newFloatBuffer(VERTS_NUMBER)
   updateVerts()
 
-  private val uvCoords: FloatBuffer = newFloatBuffer()
+  private val uvCoords: FloatBuffer = newFloatBuffer(VERTS_NUMBER)
   uvCoords.put(Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.0f, 0.0f,0.0f))
   uvCoords.position(0)
 
@@ -100,7 +102,6 @@ class MainRenderer(val view: MainView) extends Object
     logi(s"startCamera thread=${ConcurrencyUtils.currentThreadId()} (${surfaceWidth}x${surfaceHeight})")
 
     Try {
-
       val cameraOpt = Some(Camera.open())
       cameraOpt foreach { cam => {
         import scala.collection.JavaConversions._  // scalastyle:ignore
@@ -173,54 +174,42 @@ class MainRenderer(val view: MainView) extends Object
     GLES20.glUniform1i(sTexture, 0)
   }
 
-  private def drawNormal(): Unit = {
-    GLES20.glUseProgram(mainShaderProgram)
-
-    val fAngle: Int = GLES20.glGetUniformLocation(mainShaderProgram, ShaderInputs.angle)
-    GLES20.glUniform1f(fAngle, cameraAngle)
-
+  private def applyShader(shaderProgram: Int, args: List[(String, Any)]): Unit = {
+    GLES20.glUseProgram(shaderProgram)
+    args foreach { case (argName: String, argValue: Any) =>
+      val argId: Int = GLES20.glGetUniformLocation(shaderProgram, argName)
+      argValue match {
+        case num: Float => GLES20.glUniform1f(argId, num)
+        case vec: Vector[Float @unchecked] => vec.length match {
+          case 2 => GLES20.glUniform2f(argId, vec(0), vec(1))
+          case 3 => GLES20.glUniform3f(argId, vec(0), vec(1), vec(2))
+          case _ => throw new IllegalArgumentException
+        }
+        case _ => throw new IllegalArgumentException
+      }
+    }
     GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
   }
 
-  private def drawLightMonochrome(madnessLocal: Float): Unit = {
-    GLES20.glUseProgram(monochromeShaderProgram)
+  private def drawNormal(): Unit = applyShader(mainShaderProgram, List((ShaderInputs.angle, cameraAngle)))
 
-    val vOtherColor: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, ShaderInputs.otherColor)
-    val otherColor: Vector[Float] = lightColorChangeApproxRandomizer.getCurrentVector()
-    GLES20.glUniform3f(vOtherColor, otherColor(0), otherColor(1), otherColor(2))
+  private def drawLightMonochrome(madnessLocal: Float): Unit =
+    applyShader(monochromeShaderProgram, List(
+      (ShaderInputs.otherColor, lightColorChangeApproxRandomizer.getCurrentVector()),
+      (ShaderInputs.low, lightMonochromeColorRange._1),
+      (ShaderInputs.high, lightMonochromeColorRange._2),
+      (ShaderInputs.madness, madnessLocal),
+      (ShaderInputs.angle, cameraAngle)
+    ))
 
-    val fLow: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, ShaderInputs.low)
-    val fHigh: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, ShaderInputs.high)
-    val fMadness: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, ShaderInputs.madness)
-    GLES20.glUniform1f(fLow, lightMonochromeColorRange._1)
-    GLES20.glUniform1f(fHigh, lightMonochromeColorRange._2)
-    GLES20.glUniform1f(fMadness, madnessLocal)
-
-    val fAngle: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, ShaderInputs.angle)
-    GLES20.glUniform1f(fAngle, cameraAngle)
-
-    GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
-  }
-
-  private def drawDarkMonochrome(madnessLocal: Float): Unit = {
-    GLES20.glUseProgram(monochromeShaderProgram)
-
-    val vOtherColor: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, ShaderInputs.otherColor)
-    val otherColor: Vector[Float] = darkColorChangeApproxRandomizer.getCurrentVector()
-    GLES20.glUniform3f(vOtherColor, otherColor(0), otherColor(1), otherColor(2))
-
-    val fLow: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, ShaderInputs.low)
-    val fHigh: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, ShaderInputs.high)
-    val fMadness: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, ShaderInputs.madness)
-    GLES20.glUniform1f(fLow, darkMonochromeColorRange._1)
-    GLES20.glUniform1f(fHigh, darkMonochromeColorRange._2)
-    GLES20.glUniform1f(fMadness, madnessLocal)
-
-    val fAngle: Int = GLES20.glGetUniformLocation(monochromeShaderProgram, ShaderInputs.angle)
-    GLES20.glUniform1f(fAngle, cameraAngle)
-
-    GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
-  }
+  private def drawDarkMonochrome(madnessLocal: Float): Unit =
+    applyShader(monochromeShaderProgram, List(
+      (ShaderInputs.otherColor, darkColorChangeApproxRandomizer.getCurrentVector()),
+      (ShaderInputs.low, darkMonochromeColorRange._1),
+      (ShaderInputs.high, darkMonochromeColorRange._2),
+      (ShaderInputs.madness, madnessLocal),
+      (ShaderInputs.angle, cameraAngle)
+    ))
 
   override def onDrawFrame(unused: GL10): Unit = {
     val madnessLocal = ApproxRandomizer.madness
@@ -285,13 +274,9 @@ class MainRenderer(val view: MainView) extends Object
     GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
   }
 
-  private def deleteTex(): Unit = {
-    GLES20.glDeleteTextures(1, texture, 0)
-  }
+  private def deleteTex(): Unit = GLES20.glDeleteTextures(1, texture, 0)
 
-  override def onFrameAvailable(st: SurfaceTexture): Unit = {
-    view.requestRender()
-  }
+  override def onFrameAvailable(st: SurfaceTexture): Unit = view.requestRender()
 
   private def loadShader(vss: Option[String], fss: Option[String]): Int = {
     val vshader: Int = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER)
