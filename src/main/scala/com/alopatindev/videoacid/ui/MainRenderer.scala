@@ -58,19 +58,19 @@ class MainRenderer(val view: MainView) extends Object
   private val lightMonochromeColorRange: (Float, Float) = (0.51f, 1.0f)
   private val darkMonochromeColorRange: (Float, Float) = (0.0f, 0.5f)
 
-  private val screenRandFactor = 1.5f
+  private val screenRandFactor = 3.0f
   private val screenBounds = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f)
   private lazy val vertsApproxRandomizer = new ApproxRandomizer(
     minVector = screenBounds map { x => if (x < 0.0f) x * screenRandFactor else x },
     maxVector = screenBounds,
-    speed = 6.0f,
+    speed = 30.0f,
     updateInterval = 30 millis,
     randUpdateInterval = 2 seconds
   )
 
   private lazy val lightColorChangeApproxRandomizer = new ApproxRandomizer(
     minVector = Vector(0.0f, 0.0f, 0.0f),
-    maxVector = Vector(1.0f, 1.0f, 1.0f),
+    maxVector = Vector(1.0f, 0.8f, 1.0f),
     speed = 10.0f,
     updateInterval = 30 millis,
     randUpdateInterval = 2 seconds
@@ -78,7 +78,7 @@ class MainRenderer(val view: MainView) extends Object
 
   private lazy val darkColorChangeApproxRandomizer = new ApproxRandomizer(
     minVector = Vector(0.0f, 0.0f, 0.0f),
-    maxVector = Vector(1.0f, 1.0f, 1.0f),
+    maxVector = Vector(1.0f, 0.8f, 1.0f),
     speed = 10.5f,
     updateInterval = 30 millis,
     randUpdateInterval = 4 seconds

@@ -15,13 +15,10 @@ class ApproxRandomizer(val minVector: Vector[Float],
 
   import com.alopatindev.videoacid.ui.{MainActivity, VideoFragment}
   import com.alopatindev.videoacid.ConcurrencyUtils.newObservableInterval
-  import com.alopatindev.videoacid.Logs.logd
 
   import rx.lang.scala.Subscription
 
   import scala.util.Random
-
-  private def log(text: String): Unit = if (debug) logd(text) else ()
 
   val secsInMinute = 60.0f
 
@@ -72,24 +69,25 @@ class ApproxRandomizer(val minVector: Vector[Float],
   private def almostEqualVectors(a: Vector[Float], b: Vector[Float]): Boolean = {
     val madnessLocal = ApproxRandomizer.madness
     (a zip b)
-      .map { case (a, b) => Math.abs(a - b) <= smooth * madnessLocal }
-      .filter { small => small }
+      .map { case (a, b) => Math.abs(a - b) <= smooth }
+      .filter(_ == true)
       .length == a.length
   }
 
   private def calcCurrentVector(): Unit = {
-    // val madnessLocal = ApproxRandomizer.madness
+    val madnessLocal = ApproxRandomizer.madness
     val currentVectorLocal = currentVector
-    val newCurrentVector = approxStep(current = currentVectorLocal, next = nextRandVector, step = smooth * speed)
-    // val approxCompleted = currentVectorLocal == newCurrentVector // FIXME: delta <= smooth?
-    // val approxCompleted = madnessLocal > 0.5f && almostEqualVectors(currentVectorLocal, newCurrentVector)
+    val newCurrentVector = approxStep(
+      current = currentVectorLocal,
+      next = nextRandVector,
+      step = smooth * speed * madnessLocal
+    )
+
     val approxCompleted = almostEqualVectors(currentVectorLocal, newCurrentVector)
     if (approxCompleted)
       calcNextRandVector()
-    else {
-      log(s"newCurrentVector=$newCurrentVector")
+    else
       currentVector = newCurrentVector
-    }
   }
 
   private def approxStep(current: Vector[Float], next: Vector[Float], step: Float): Vector[Float] =

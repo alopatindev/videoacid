@@ -62,6 +62,12 @@ class MainActivity extends FragmentActivity with TypedFindView with ActivityUtil
     pager setAdapter adapter
   }
 
+  private def startEncoding(): Unit = {
+  }
+
+  private def stopEncoding(): Unit = {
+  }
+
 }
 
 object MainActivity {
