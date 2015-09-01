@@ -50,7 +50,12 @@ class MainRenderer(val view: MainView) extends Object
   private var mainShaderProgram: Int = 0
   private var monochromeShaderProgram: Int = 0
 
-  private val texture: Array[Int] = Array(0)
+  private var fbInitialized = false
+  private val fbTexture: Array[Int] = Array(0)
+  private val fb: Array[Int] = Array(0)
+  private val depthRb: Array[Int] = Array(0)
+
+  private val cameraTexture: Array[Int] = Array(0)
 
   @volatile private var camera: Option[Camera] = None
   private val cameraAngle: Float = -0.5f * Math.PI.toFloat
@@ -152,39 +157,41 @@ class MainRenderer(val view: MainView) extends Object
   override def onSurfaceCreated(unused: GL10, config: EGLConfig): Unit = {
     logi(s"MainRenderer.onSurfaceCreated thread=${ConcurrencyUtils.currentThreadId()}")
 
-    initTexture()
-    surfaceTexture = Some(new SurfaceTexture(texture(0)))
-    surfaceTexture foreach { _.setOnFrameAvailableListener(this) }
+    initCameraTexture()
+    initShaders()
+  }
 
-    // GLES20.glClearColor(0.5f, 0.5f, 0.5f, 1.0f)
-    GLES20.glClearColor(1.0f, 1.0f, 0.0f, 1.0f)
-
-    mainShaderProgram = loadShader(vertMainShader, fragMainShader)
-    monochromeShaderProgram = loadShader(vertMainShader, fragMonochromeShader)
-
-    val vPosition: Int = GLES20.glGetAttribLocation(mainShaderProgram, ShaderInputs.position)
-    val vTexCoord: Int = GLES20.glGetAttribLocation(mainShaderProgram, ShaderInputs.texCoord)
-
-    GLES20.glVertexAttribPointer(vPosition, 2, GLES20.GL_FLOAT, false, 0, verts)
-    GLES20.glVertexAttribPointer(vTexCoord, 2, GLES20.GL_FLOAT, false, 0, uvCoords)
-    GLES20.glEnableVertexAttribArray(vPosition)
-    GLES20.glEnableVertexAttribArray(vTexCoord)
-
-    val sTexture: Int = GLES20.glGetUniformLocation(mainShaderProgram, ShaderInputs.texture)
+  private def setInputShaderTexture(shaderProgram: Int, textureId: Int): Unit = {
+    val sTexture: Int = GLES20.glGetUniformLocation(shaderProgram, ShaderInputs.texture)
     GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
-    GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, texture(0))
+    GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId)
     GLES20.glUniform1i(sTexture, 0)
+  }
+
+  private def setOutputToScreen(): Unit = {
+    // Bind the default framebuffer (to render to the screen) - indicated by '0'
+    GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0)
   }
 
   override def onDrawFrame(unused: GL10): Unit = {
     GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
 
     if (frameAvailable) {
-      surfaceTexture foreach { _.updateTexImage() }
       frameAvailable = false
 
+      surfaceTexture foreach { _.updateTexImage() }  // render from camera to cameraTexture
       updateVerts()
+
+      //GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
+      //GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT)
+
+      setInputShaderTexture(mainShaderProgram, cameraTexture(0))
+      setOutputToScreen()
+
       drawNormal()
+
+      //setInputShaderTexture(monochromeShaderProgram, cameraTexture(0))
+      //setOutputToScreen()
       withBlend {
         val madnessLocal = ApproxRandomizer.madness
         drawLightMonochrome(madnessLocal)
@@ -197,6 +204,10 @@ class MainRenderer(val view: MainView) extends Object
 
   override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
     logd(s"onSurfaceChanged")
+
+    if (!fbInitialized) {
+      initFrameBufferTexture(width, height)
+    }
 
     startCamera(width, height)
 
@@ -267,11 +278,11 @@ class MainRenderer(val view: MainView) extends Object
     verts.position(0)
   }
 
-  private def initTexture(): Unit = {
-    logd("initTexture")
+  private def initCameraTexture(): Unit = {
+    logd("initCameraTexture")
 
-    GLES20.glGenTextures(1, texture, 0)
-    GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, texture(0))
+    GLES20.glGenTextures(1, cameraTexture, 0)
+    GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, cameraTexture(0))
 
     GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
     GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
@@ -280,9 +291,45 @@ class MainRenderer(val view: MainView) extends Object
     // GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST)
     GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
     GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
+
+    surfaceTexture = Some(new SurfaceTexture(cameraTexture(0)))
+    surfaceTexture foreach { _.setOnFrameAvailableListener(this) }
+
+    // GLES20.glClearColor(0.5f, 0.5f, 0.5f, 1.0f)
+    GLES20.glClearColor(1.0f, 1.0f, 0.0f, 1.0f)
   }
 
-  private def deleteTex(): Unit = GLES20.glDeleteTextures(1, texture, 0)
+  private def initFrameBufferTexture(width: Int, height: Int): Unit = {
+    GLES20.glGenFramebuffers(1, fb, 0)
+    GLES20.glGenRenderbuffers(1, depthRb, 0); // the depth buffer
+    GLES20.glGenTextures(1, fbTexture, 0)
+
+    // generate texture
+    GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, fbTexture(0))
+
+    // parameters - we have to make sure we clamp the textures to the edges
+    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
+    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
+    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
+    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
+
+    // create it
+    // create an empty intbuffer first
+    val size = width * height * BYTES_PER_FLOAT
+    val texBuffer = ByteBuffer.allocateDirect(size).order(ByteOrder.nativeOrder()).asIntBuffer()
+
+    // generate the textures
+    GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGB, width, height, 0, GLES20.GL_RGB, GLES20.GL_UNSIGNED_SHORT_5_6_5, texBuffer)
+
+    // create render buffer and bind 16-bit depth buffer
+    GLES20.glBindRenderbuffer(GLES20.GL_RENDERBUFFER, depthRb(0))
+    GLES20.glRenderbufferStorage(GLES20.GL_RENDERBUFFER, GLES20.GL_DEPTH_COMPONENT16, width, height)
+    GLES20.glClearColor(1.0f, 1.0f, 1.0f, 1.0f)
+
+    fbInitialized = true
+  }
+
+  private def deleteTex(): Unit = GLES20.glDeleteTextures(1, cameraTexture, 0)
 
   private def loadShader(vss: Option[String], fss: Option[String]): Int = {
     val vshader: Int = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER)
@@ -311,6 +358,19 @@ class MainRenderer(val view: MainView) extends Object
     GLES20.glLinkProgram(program)
 
     program
+  }
+
+  private def initShaders(): Unit = {
+    mainShaderProgram = loadShader(vertMainShader, fragMainShader)
+    monochromeShaderProgram = loadShader(vertMainShader, fragMonochromeShader)
+
+    val vPosition: Int = GLES20.glGetAttribLocation(mainShaderProgram, ShaderInputs.position)
+    val vTexCoord: Int = GLES20.glGetAttribLocation(mainShaderProgram, ShaderInputs.texCoord)
+
+    GLES20.glVertexAttribPointer(vPosition, 2, GLES20.GL_FLOAT, false, 0, verts)
+    GLES20.glVertexAttribPointer(vTexCoord, 2, GLES20.GL_FLOAT, false, 0, uvCoords)
+    GLES20.glEnableVertexAttribArray(vPosition)
+    GLES20.glEnableVertexAttribArray(vTexCoord)
   }
 
 }
