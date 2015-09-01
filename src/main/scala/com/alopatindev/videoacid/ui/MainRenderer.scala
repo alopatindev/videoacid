@@ -42,6 +42,7 @@ class MainRenderer(val view: MainView) extends Object
     val low: String = "fLow"
     val high: String = "fHigh"
     val madness: String = "fMadness"
+    val alpha: String = "fAlpha"
   }
 
   private lazy val vertMainShader: Option[String] = Utils.loadAsset("main.vert")
@@ -173,30 +174,59 @@ class MainRenderer(val view: MainView) extends Object
     GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0)
   }
 
+  private def setOutputToFrameBuffer(): Unit = {
+    GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fb(0))
+
+    // specify texture as color attachment
+    GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, fbTexture(0), 0)
+
+    // attach render buffer as depth buffer
+    GLES20.glFramebufferRenderbuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_DEPTH_ATTACHMENT, GLES20.GL_RENDERBUFFER, depthRb(0))
+
+    // check status
+    val status: Int = GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER)
+    if (status != GLES20.GL_FRAMEBUFFER_COMPLETE) {
+      loge("setOutputToFrameBuffer: something went wrong")
+    }
+  }
+
+  private var renderedFrame = 0
   override def onDrawFrame(unused: GL10): Unit = {
-    GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
+//    GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
 
     if (frameAvailable) {
       frameAvailable = false
+      renderedFrame += 1
 
+      // fetch new frame from camera
       surfaceTexture foreach { _.updateTexImage() }  // render from camera to cameraTexture
       updateVerts()
 
       //GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
       //GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT)
 
-      setInputShaderTexture(mainShaderProgram, cameraTexture(0))
+
+
+      // draw previous frame from fb to screen
+      setInputShaderTexture(mainShaderProgram, fbTexture(0))
       setOutputToScreen()
-
-      drawNormal()
-
-      //setInputShaderTexture(monochromeShaderProgram, cameraTexture(0))
-      //setOutputToScreen()
       withBlend {
         val madnessLocal = ApproxRandomizer.madness
         drawLightMonochrome(madnessLocal)
         drawDarkMonochrome(madnessLocal)
+
+        drawNormal(0.2f)
       }
+
+      val needUpdateFrameBuffer = renderedFrame % 5 == 0
+      if (needUpdateFrameBuffer) {
+        // render from camera to fb
+        setInputShaderTexture(mainShaderProgram, cameraTexture(0))
+        setOutputToFrameBuffer()
+        drawNormal()
+      }
+
+
       // GLES20.glFlush()
       // GLES20.glFinish()
     }
@@ -219,7 +249,11 @@ class MainRenderer(val view: MainView) extends Object
     view.requestRender()
   }
 
-  private def drawNormal(): Unit = applyShader(mainShaderProgram, List((ShaderInputs.angle, cameraAngle)))
+  private def drawNormal(alpha: Float = 1.0f): Unit =
+    applyShader(mainShaderProgram, List(
+      (ShaderInputs.angle, cameraAngle),
+      (ShaderInputs.alpha, alpha)
+    ))
 
   private def drawLightMonochrome(madnessLocal: Float): Unit =
     applyShader(monochromeShaderProgram, List(
