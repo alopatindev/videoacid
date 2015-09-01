@@ -31,6 +31,8 @@ class MainRenderer(val view: MainView) extends Object
 
   implicit val ctx: Context = view.getContext()
 
+  @volatile var frameAvailable: Boolean = false
+
   object ShaderInputs {
     val position: String = "vPosition"
     val texCoord: String = "vTexCoord"
@@ -63,9 +65,9 @@ class MainRenderer(val view: MainView) extends Object
   private lazy val vertsApproxRandomizer = new ApproxRandomizer(
     minVector = screenBounds map { x => if (x < 0.0f) x * screenRandFactor else x },
     maxVector = screenBounds,
-    speed = 30.0f,
+    speed = 20.0f,
     updateInterval = 30 millis,
-    randUpdateInterval = 2 seconds
+    randUpdateInterval = 5 seconds
   )
 
   private lazy val lightColorChangeApproxRandomizer = new ApproxRandomizer(
@@ -133,7 +135,7 @@ class MainRenderer(val view: MainView) extends Object
   def stopCamera(): Unit = {
     logi(s"MainRenderer.stopCamera thread=${ConcurrencyUtils.currentThreadId()}")
     camera foreach { cam => {
-      cam.setPreviewTexture(null)  // scalastyle:ignore
+      // cam.setPreviewTexture(null)  // scalastyle:ignore
       cam.stopPreview()
       cam.release()
     }}
@@ -177,20 +179,20 @@ class MainRenderer(val view: MainView) extends Object
   override def onDrawFrame(unused: GL10): Unit = {
     GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
 
-    surfaceTexture foreach { _.updateTexImage() }
+    if (frameAvailable) {
+      surfaceTexture foreach { _.updateTexImage() }
+      frameAvailable = false
 
-    updateVerts()
-
-    drawNormal()
-
-    withBlend {
-      val madnessLocal = ApproxRandomizer.madness
-      drawLightMonochrome(madnessLocal)
-      drawDarkMonochrome(madnessLocal)
+      updateVerts()
+      drawNormal()
+      withBlend {
+        val madnessLocal = ApproxRandomizer.madness
+        drawLightMonochrome(madnessLocal)
+        drawDarkMonochrome(madnessLocal)
+      }
+      // GLES20.glFlush()
+      // GLES20.glFinish()
     }
-
-    // GLES20.glFlush()
-    // GLES20.glFinish()
   }
 
   override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
@@ -201,7 +203,10 @@ class MainRenderer(val view: MainView) extends Object
     GLES20.glViewport(0, 0, width, height)
   }
 
-  override def onFrameAvailable(st: SurfaceTexture): Unit = view.requestRender()
+  override def onFrameAvailable(st: SurfaceTexture): Unit = {
+    frameAvailable = true
+    view.requestRender()
+  }
 
   private def drawNormal(): Unit = applyShader(mainShaderProgram, List((ShaderInputs.angle, cameraAngle)))
 
