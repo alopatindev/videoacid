@@ -45,4 +45,6 @@ object Utils {
     }
   } getOrElse false
 
+  def clamp(x: Float, low: Float, high: Float): Float = Math.min(Math.max(x, low), high)
+
 }

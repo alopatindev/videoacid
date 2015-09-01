@@ -14,9 +14,7 @@ import language.postfixOps
 import scala.concurrent.duration._  // scalastyle:ignore
 import scala.util.Try
 
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.nio.FloatBuffer
+import java.nio.{ByteBuffer, ByteOrder, FloatBuffer, IntBuffer}
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
@@ -28,6 +26,7 @@ class MainRenderer(val view: MainView) extends Object
 
   import com.alopatindev.videoacid.ConcurrencyUtils
   import com.alopatindev.videoacid.Logs.{logd, loge, logi}
+  import com.alopatindev.videoacid.Utils
 
   implicit val ctx: Context = view.getContext()
 
@@ -54,7 +53,6 @@ class MainRenderer(val view: MainView) extends Object
   private var fbInitialized = false
   private val fbTexture: Array[Int] = Array(0)
   private val fb: Array[Int] = Array(0)
-  private val depthRb: Array[Int] = Array(0)
 
   private val cameraTexture: Array[Int] = Array(0)
 
@@ -93,11 +91,15 @@ class MainRenderer(val view: MainView) extends Object
   )
 
   private val VERTS_NUMBER = 8
-  private val BYTES_PER_FLOAT = 4
-  private def newFloatBuffer(size: Int) = ByteBuffer
-    .allocateDirect(size * BYTES_PER_FLOAT)
+  private val BYTES_PER_INT = 4
+  private val BYTES_PER_FLOAT = BYTES_PER_INT
+
+  private def newBuffer(size: Int): ByteBuffer = ByteBuffer
+    .allocateDirect(size)
     .order(ByteOrder.nativeOrder)
-    .asFloatBuffer()
+
+  private def newFloatBuffer(length: Int): FloatBuffer = newBuffer(length * BYTES_PER_FLOAT).asFloatBuffer()
+  private def newIntBuffer(length: Int): IntBuffer = newBuffer(length * BYTES_PER_INT).asIntBuffer()
 
   private val verts: FloatBuffer = newFloatBuffer(VERTS_NUMBER)
   updateVerts()
@@ -152,7 +154,7 @@ class MainRenderer(val view: MainView) extends Object
     logd(s"MainRenderer.release thread=${ConcurrencyUtils.currentThreadId()}")
     stopCamera()
     surfaceTexture foreach { _.release() }
-    deleteTex()
+    releaseGLResources()
   }
 
   override def onSurfaceCreated(unused: GL10, config: EGLConfig): Unit = {
@@ -160,6 +162,9 @@ class MainRenderer(val view: MainView) extends Object
 
     initCameraTexture()
     initShaders()
+
+    setInputShaderTexture(mainShaderProgram, cameraTexture(0))
+    setOutputToScreen()
   }
 
   private def setInputShaderTexture(shaderProgram: Int, textureId: Int): Unit = {
@@ -176,56 +181,30 @@ class MainRenderer(val view: MainView) extends Object
 
   private def setOutputToFrameBuffer(): Unit = {
     GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fb(0))
-
-    // specify texture as color attachment
     GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, fbTexture(0), 0)
-
-    // attach render buffer as depth buffer
-    GLES20.glFramebufferRenderbuffer(GLES20.GL_FRAMEBUFFER, GLES20.GL_DEPTH_ATTACHMENT, GLES20.GL_RENDERBUFFER, depthRb(0))
-
-    // check status
     val status: Int = GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER)
     if (status != GLES20.GL_FRAMEBUFFER_COMPLETE) {
       loge("setOutputToFrameBuffer: something went wrong")
     }
   }
 
-  private var renderedFrame = 0
   override def onDrawFrame(unused: GL10): Unit = {
-//    GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
-
     if (frameAvailable) {
       frameAvailable = false
-      renderedFrame += 1
 
       // fetch new frame from camera
-      surfaceTexture foreach { _.updateTexImage() }  // render from camera to cameraTexture
+      surfaceTexture foreach { _.updateTexImage() }
+
       updateVerts()
 
-      //GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
-      //GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT)
+      val madnessLocal = ApproxRandomizer.madness
 
-
-
-      // draw previous frame from fb to screen
-      setInputShaderTexture(mainShaderProgram, fbTexture(0))
-      setOutputToScreen()
       withBlend {
-        val madnessLocal = ApproxRandomizer.madness
-        drawLightMonochrome(madnessLocal)
-        drawDarkMonochrome(madnessLocal)
-
-        drawNormal(0.2f)
+        renderLightMonochrome(madnessLocal)
+        renderDarkMonochrome(madnessLocal)
+        val alpha = Utils.clamp(1.0f - madnessLocal, 0.2f, 1.0f)
+        renderNormal(alpha)
       }
-
-      val needUpdateFrameBuffer = renderedFrame % 5 == 0
-      if (needUpdateFrameBuffer) {
-        // render from camera to fb
-        setInputShaderTexture(mainShaderProgram, cameraTexture(0))
-        setOutputToFrameBuffer()
-        drawNormal()
-      }
-
 
       // GLES20.glFlush()
       // GLES20.glFinish()
@@ -235,9 +214,9 @@ class MainRenderer(val view: MainView) extends Object
   override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
     logd(s"onSurfaceChanged")
 
-    if (!fbInitialized) {
+    /*if (!fbInitialized) {
       initFrameBufferTexture(width, height)
-    }
+    }*/
 
     startCamera(width, height)
 
@@ -249,13 +228,13 @@ class MainRenderer(val view: MainView) extends Object
     view.requestRender()
   }
 
-  private def drawNormal(alpha: Float = 1.0f): Unit =
+  private def renderNormal(alpha: Float = 1.0f): Unit =
     applyShader(mainShaderProgram, List(
       (ShaderInputs.angle, cameraAngle),
       (ShaderInputs.alpha, alpha)
     ))
 
-  private def drawLightMonochrome(madnessLocal: Float): Unit =
+  private def renderLightMonochrome(madnessLocal: Float): Unit =
     applyShader(monochromeShaderProgram, List(
       (ShaderInputs.otherColor, lightColorChangeApproxRandomizer.getCurrentVector()),
       (ShaderInputs.low, lightMonochromeColorRange._1),
@@ -264,7 +243,7 @@ class MainRenderer(val view: MainView) extends Object
       (ShaderInputs.angle, cameraAngle)
     ))
 
-  private def drawDarkMonochrome(madnessLocal: Float): Unit =
+  private def renderDarkMonochrome(madnessLocal: Float): Unit =
     applyShader(monochromeShaderProgram, List(
       (ShaderInputs.otherColor, darkColorChangeApproxRandomizer.getCurrentVector()),
       (ShaderInputs.low, darkMonochromeColorRange._1),
@@ -330,12 +309,12 @@ class MainRenderer(val view: MainView) extends Object
     surfaceTexture foreach { _.setOnFrameAvailableListener(this) }
 
     // GLES20.glClearColor(0.5f, 0.5f, 0.5f, 1.0f)
-    GLES20.glClearColor(1.0f, 1.0f, 0.0f, 1.0f)
+    //GLES20.glClearColor(1.0f, 1.0f, 0.0f, 1.0f)
+    GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
   }
 
   private def initFrameBufferTexture(width: Int, height: Int): Unit = {
     GLES20.glGenFramebuffers(1, fb, 0)
-    GLES20.glGenRenderbuffers(1, depthRb, 0); // the depth buffer
     GLES20.glGenTextures(1, fbTexture, 0)
 
     // generate texture
@@ -347,23 +326,25 @@ class MainRenderer(val view: MainView) extends Object
     GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
     GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
 
-    // create it
-    // create an empty intbuffer first
-    val size = width * height * BYTES_PER_FLOAT
-    val texBuffer = ByteBuffer.allocateDirect(size).order(ByteOrder.nativeOrder()).asIntBuffer()
+    val bufferLength = width * height * BYTES_PER_INT
+    val texBuffer: IntBuffer = newIntBuffer(bufferLength)
 
     // generate the textures
     GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGB, width, height, 0, GLES20.GL_RGB, GLES20.GL_UNSIGNED_SHORT_5_6_5, texBuffer)
 
-    // create render buffer and bind 16-bit depth buffer
-    GLES20.glBindRenderbuffer(GLES20.GL_RENDERBUFFER, depthRb(0))
-    GLES20.glRenderbufferStorage(GLES20.GL_RENDERBUFFER, GLES20.GL_DEPTH_COMPONENT16, width, height)
-    GLES20.glClearColor(1.0f, 1.0f, 1.0f, 1.0f)
+    GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
 
     fbInitialized = true
   }
 
-  private def deleteTex(): Unit = GLES20.glDeleteTextures(1, cameraTexture, 0)
+  private def releaseGLResources(): Unit = {
+    GLES20.glDeleteTextures(1, cameraTexture, 0)
+    if (fbInitialized) {
+      GLES20.glDeleteTextures(1, fbTexture, 0)
+      GLES20.glDeleteFramebuffers(1, fb, 0)
+      fbInitialized = false
+    }
+  }
 
   private def loadShader(vss: Option[String], fss: Option[String]): Int = {
     val vshader: Int = GLES20.glCreateShader(GLES20.GL_VERTEX_SHADER)

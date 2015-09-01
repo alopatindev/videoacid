@@ -53,7 +53,7 @@ class ApproxRandomizer(val minVector: Vector[Float],
       val scaledDelta = delta * madnessLocal
       // val randNum = rand.nextFloat()
       val randGauss = (0.5 + rand.nextGaussian() / 8.0).toFloat
-      val randNum = clamp(randGauss, 0.0f, 1.0f)
+      val randNum = Utils.clamp(randGauss, 0.0f, 1.0f)
       val value = a + randNum * scaledDelta
 
       assert(randNum >= 0.0f && randNum <= 1.0f, s"$randNum is out of [0 .. 1]")
@@ -99,8 +99,6 @@ class ApproxRandomizer(val minVector: Vector[Float],
       if (found) c
       else next
     }}
-
-  private def clamp(x: Float, low: Float, high: Float): Float = Math.min(Math.max(x, low), high)
 
 }
 

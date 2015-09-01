@@ -16,7 +16,7 @@ void main() {
   float bw = (tex.r + tex.g + tex.b) * 0.33;
   float low = fLow;
   float high = fHigh;
-  float alpha = 0.5 * fMadness;
+  float alpha = 0.2 * fMadness;
 
   if (bw < low || bw > high) {
     discard;
