@@ -66,13 +66,11 @@ class ApproxRandomizer(val minVector: Vector[Float],
       .map { case (a, b) => randBetween(a, b) }
   }
 
-  private def almostEqualVectors(a: Vector[Float], b: Vector[Float]): Boolean = {
-    val madnessLocal = ApproxRandomizer.madness
+  private def almostEqualVectors(a: Vector[Float], b: Vector[Float]): Boolean =
     (a zip b)
       .map { case (a, b) => Math.abs(a - b) <= smooth }
       .filter(_ == true)
       .length == a.length
-  }
 
   private def calcCurrentVector(): Unit = {
     val madnessLocal = ApproxRandomizer.madness

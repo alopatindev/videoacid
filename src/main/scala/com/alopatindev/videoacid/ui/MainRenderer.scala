@@ -175,7 +175,6 @@ class MainRenderer(val view: MainView) extends Object
   }
 
   private def setOutputToScreen(): Unit = {
-    // Bind the default framebuffer (to render to the screen) - indicated by '0'
     GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0)
   }
 
@@ -200,10 +199,11 @@ class MainRenderer(val view: MainView) extends Object
       val madnessLocal = ApproxRandomizer.madness
 
       withBlend {
+        val alpha = Utils.clamp(1.0f - madnessLocal, 0.2f, 0.7f)
+        renderNormal(alpha)
+
         renderLightMonochrome(madnessLocal)
         renderDarkMonochrome(madnessLocal)
-        val alpha = Utils.clamp(1.0f - madnessLocal, 0.2f, 1.0f)
-        renderNormal(alpha)
       }
 
       // GLES20.glFlush()
