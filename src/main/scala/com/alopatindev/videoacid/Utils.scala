@@ -3,6 +3,7 @@ package com.alopatindev.videoacid
 object Utils {
 
   import android.content.Context
+  import android.graphics.{Bitmap, BitmapFactory}
 
   import scala.io.Source
   import scala.util.Try
@@ -12,6 +13,13 @@ object Utils {
   def loadAsset(path: String)(implicit ctx: Context): Option[String] = Try {
     val in: InputStream = ctx.getAssets().open(path)
     val result: String = Source.fromInputStream(in).mkString
+    in.close()
+    result
+  }.toOption
+
+  def loadBitmapAsset(path: String)(implicit ctx: Context): Option[Bitmap] = Try {
+    val in: InputStream = ctx.getAssets().open(path)
+    val result: Bitmap = BitmapFactory.decodeStream(in)
     in.close()
     result
   }.toOption

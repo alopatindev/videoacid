@@ -45,10 +45,13 @@ class MainRenderer(val view: MainView) extends Object
   }
 
   private lazy val vertMainShader: Option[String] = Utils.loadAsset("main.vert")
+  private lazy val vertFbTextureShader: Option[String] = Utils.loadAsset("fbtexture.vert")
   private lazy val fragMainShader: Option[String] = Utils.loadAsset("main.frag")
   private lazy val fragMonochromeShader: Option[String] = Utils.loadAsset("monochrome.frag")
+  private lazy val fragFbTextureShader: Option[String] = Utils.loadAsset("fbtexture.frag")
   private var mainShaderProgram: Int = 0
   private var monochromeShaderProgram: Int = 0
+  private var fbTextureShaderProgram: Int = 0
 
   private var fbInitialized = false
   private val fbTexture: Array[Int] = Array(0)
@@ -102,7 +105,15 @@ class MainRenderer(val view: MainView) extends Object
   private def newIntBuffer(length: Int): IntBuffer = newBuffer(length * BYTES_PER_INT).asIntBuffer()
 
   private val verts: FloatBuffer = newFloatBuffer(VERTS_NUMBER)
-  updateVerts()
+  //verts.put(screenBounds.toArray)
+  //verts.put(Array(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f))
+  //verts.put(Array(-1.0f,1.0f, 1.0f,1.0f, -1.0f,-1.0f, 1.0f,-1.0f))
+  //verts.put(Array(1.0f,1.0f, -1.0f,1.0f, 1.0f,-1.0f, -1.0f,-1.0f))
+  verts.put(Array(-1.0f,-1.0f, 1.0f,-1.0f, -1.0f,1.0f, 1.0f,1.0f))
+  verts.position(0)
+
+  private val fbVerts: FloatBuffer = newFloatBuffer(VERTS_NUMBER)
+  updateFbVerts()
 
   private val uvCoords: FloatBuffer = newFloatBuffer(VERTS_NUMBER)
   uvCoords.put(Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.0f, 0.0f,0.0f))
@@ -162,16 +173,6 @@ class MainRenderer(val view: MainView) extends Object
 
     initCameraTexture()
     initShaders()
-
-    setInputShaderTexture(mainShaderProgram, cameraTexture(0))
-    setOutputToScreen()
-  }
-
-  private def setInputShaderTexture(shaderProgram: Int, textureId: Int): Unit = {
-    val sTexture: Int = GLES20.glGetUniformLocation(shaderProgram, ShaderInputs.texture)
-    GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
-    GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId)
-    GLES20.glUniform1i(sTexture, 0)
   }
 
   private def setOutputToScreen(): Unit = {
@@ -188,20 +189,21 @@ class MainRenderer(val view: MainView) extends Object
   }
 
   override def onDrawFrame(unused: GL10): Unit = {
+    setOutputToScreen()
+    GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT)
+
     if (frameAvailable) {
       frameAvailable = false
 
-      // fetch new frame from camera
-      surfaceTexture foreach { _.updateTexImage() }
+      updateFbVerts()
+      renderFbTexture()  // rendering previous fb texture to screen
 
-      updateVerts()
-
-      val madnessLocal = ApproxRandomizer.madness
-
+      setOutputToFrameBuffer()
+      surfaceTexture foreach { _.updateTexImage() }  // fetch a new frame from camera
       withBlend {
+        val madnessLocal = ApproxRandomizer.madness
         val alpha = Utils.clamp(1.0f - madnessLocal, 0.2f, 0.7f)
         renderNormal(alpha)
-
         renderLightMonochrome(madnessLocal)
         renderDarkMonochrome(madnessLocal)
       }
@@ -214,9 +216,9 @@ class MainRenderer(val view: MainView) extends Object
   override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
     logd(s"onSurfaceChanged")
 
-    /*if (!fbInitialized) {
+    if (!fbInitialized) {
       initFrameBufferTexture(width, height)
-    }*/
+    }
 
     startCamera(width, height)
 
@@ -231,25 +233,33 @@ class MainRenderer(val view: MainView) extends Object
   private def renderNormal(alpha: Float = 1.0f): Unit =
     applyShader(mainShaderProgram, List(
       (ShaderInputs.angle, cameraAngle),
+      (ShaderInputs.texture, cameraTexture),
       (ShaderInputs.alpha, alpha)
+    ))
+
+  private def renderFbTexture(): Unit =
+    applyShader(fbTextureShaderProgram, List(
+      (ShaderInputs.texture, fbTexture)
     ))
 
   private def renderLightMonochrome(madnessLocal: Float): Unit =
     applyShader(monochromeShaderProgram, List(
+      (ShaderInputs.angle, cameraAngle),
+      (ShaderInputs.texture, cameraTexture),
       (ShaderInputs.otherColor, lightColorChangeApproxRandomizer.getCurrentVector()),
       (ShaderInputs.low, lightMonochromeColorRange._1),
       (ShaderInputs.high, lightMonochromeColorRange._2),
-      (ShaderInputs.madness, madnessLocal),
-      (ShaderInputs.angle, cameraAngle)
+      (ShaderInputs.madness, madnessLocal)
     ))
 
   private def renderDarkMonochrome(madnessLocal: Float): Unit =
     applyShader(monochromeShaderProgram, List(
+      (ShaderInputs.angle, cameraAngle),
+      (ShaderInputs.texture, cameraTexture),
       (ShaderInputs.otherColor, darkColorChangeApproxRandomizer.getCurrentVector()),
       (ShaderInputs.low, darkMonochromeColorRange._1),
       (ShaderInputs.high, darkMonochromeColorRange._2),
-      (ShaderInputs.madness, madnessLocal),
-      (ShaderInputs.angle, cameraAngle)
+      (ShaderInputs.madness, madnessLocal)
     ))
 
   private def applyShader(shaderProgram: Int, args: List[(String, Any)]): Unit = {
@@ -257,6 +267,12 @@ class MainRenderer(val view: MainView) extends Object
     args foreach { case (argName: String, argValue: Any) =>
       val argId: Int = GLES20.glGetUniformLocation(shaderProgram, argName)
       argValue match {
+        case tex: Array[Int @unchecked] if argName == ShaderInputs.texture =>
+          GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
+          val textureType = if (shaderProgram == fbTextureShaderProgram) GLES20.GL_TEXTURE_2D
+                            else GLES11Ext.GL_TEXTURE_EXTERNAL_OES
+          GLES20.glBindTexture(textureType, tex(0))
+          GLES20.glUniform1i(argId, 0)
         case num: Float => GLES20.glUniform1f(argId, num)
         case vec: Vector[Float @unchecked] => vec.length match {
           case 2 => GLES20.glUniform2f(argId, vec(0), vec(1))
@@ -286,9 +302,9 @@ class MainRenderer(val view: MainView) extends Object
     GLES20.glDisable(GLES20.GL_BLEND)
   }
 
-  private def updateVerts(): Unit = {
-    verts.put(vertsApproxRandomizer.getCurrentArray())
-    verts.position(0)
+  private def updateFbVerts(): Unit = {
+    fbVerts.put(vertsApproxRandomizer.getCurrentArray())
+    fbVerts.position(0)
   }
 
   private def initCameraTexture(): Unit = {
@@ -317,20 +333,22 @@ class MainRenderer(val view: MainView) extends Object
     GLES20.glGenFramebuffers(1, fb, 0)
     GLES20.glGenTextures(1, fbTexture, 0)
 
-    // generate texture
     GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, fbTexture(0))
 
-    // parameters - we have to make sure we clamp the textures to the edges
+    val bufferLength = width * height * BYTES_PER_INT
+    val texBuffer: IntBuffer = newIntBuffer(bufferLength)
+
+    GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGB, width, height, 0, GLES20.GL_RGB, GLES20.GL_UNSIGNED_SHORT_5_6_5, texBuffer)
+
     GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
     GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
     GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
     GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
 
-    val bufferLength = width * height * BYTES_PER_INT
-    val texBuffer: IntBuffer = newIntBuffer(bufferLength)
-
-    // generate the textures
-    GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGB, width, height, 0, GLES20.GL_RGB, GLES20.GL_UNSIGNED_SHORT_5_6_5, texBuffer)
+    /* GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+    GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_REPEAT);
+    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_REPEAT); */
 
     GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
 
@@ -384,11 +402,14 @@ class MainRenderer(val view: MainView) extends Object
   private def initShaders(): Unit = {
     mainShaderProgram = loadShader(vertMainShader, fragMainShader)
     monochromeShaderProgram = loadShader(vertMainShader, fragMonochromeShader)
+    fbTextureShaderProgram = loadShader(vertFbTextureShader, fragFbTextureShader)
 
-    for (shaderProgram <- List(mainShaderProgram, monochromeShaderProgram)) yield {
+    for (shaderProgram <- List(mainShaderProgram, monochromeShaderProgram, fbTextureShaderProgram)) yield {
       val vPosition: Int = GLES20.glGetAttribLocation(shaderProgram, ShaderInputs.position)
       val vTexCoord: Int = GLES20.glGetAttribLocation(shaderProgram, ShaderInputs.texCoord)
-      GLES20.glVertexAttribPointer(vPosition, 2, GLES20.GL_FLOAT, false, 0, verts)
+      val v = if (shaderProgram == fbTextureShaderProgram) fbVerts
+              else verts
+      GLES20.glVertexAttribPointer(vPosition, 2, GLES20.GL_FLOAT, false, 0, v)
       GLES20.glVertexAttribPointer(vTexCoord, 2, GLES20.GL_FLOAT, false, 0, uvCoords)
       GLES20.glEnableVertexAttribArray(vPosition)
       GLES20.glEnableVertexAttribArray(vTexCoord)
