@@ -351,9 +351,9 @@ class MainRenderer(val view: MainView) extends Object
     vss foreach { vss => GLES20.glShaderSource(vshader, vss) }
     GLES20.glCompileShader(vshader)
 
-    val compiled = Array(0)
-    GLES20.glGetShaderiv(vshader, GLES20.GL_COMPILE_STATUS, compiled, 0)
-    if (compiled(0) == 0) {
+    val status = Array(0)
+    GLES20.glGetShaderiv(vshader, GLES20.GL_COMPILE_STATUS, status, 0)
+    if (status(0) != GLES20.GL_TRUE) {
       loge(s"Could not compile vshader: ${GLES20.glGetShaderInfoLog(vshader)}")
       GLES20.glDeleteShader(vshader)
     }
@@ -361,8 +361,8 @@ class MainRenderer(val view: MainView) extends Object
     val fshader: Int = GLES20.glCreateShader(GLES20.GL_FRAGMENT_SHADER)
     fss foreach { fss => GLES20.glShaderSource(fshader, fss) }
     GLES20.glCompileShader(fshader)
-    GLES20.glGetShaderiv(fshader, GLES20.GL_COMPILE_STATUS, compiled, 0)
-    if (compiled(0) == 0) {
+    GLES20.glGetShaderiv(fshader, GLES20.GL_COMPILE_STATUS, status, 0)
+    if (status(0) != GLES20.GL_TRUE) {
       loge(s"Could not compile fshader: ${GLES20.glGetShaderInfoLog(fshader)}")
       GLES20.glDeleteShader(fshader)
     }
@@ -371,6 +371,12 @@ class MainRenderer(val view: MainView) extends Object
     GLES20.glAttachShader(program, vshader)
     GLES20.glAttachShader(program, fshader)
     GLES20.glLinkProgram(program)
+
+    GLES20.glGetProgramiv(program, GLES20.GL_LINK_STATUS, status, 0);
+    if (status(0) != GLES20.GL_TRUE) {
+      loge(s"Could not link program: ${GLES20.glGetProgramInfoLog(program)}")
+      GLES20.glDeleteProgram(program)
+    }
 
     program
   }
