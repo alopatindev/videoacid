@@ -385,13 +385,14 @@ class MainRenderer(val view: MainView) extends Object
     mainShaderProgram = loadShader(vertMainShader, fragMainShader)
     monochromeShaderProgram = loadShader(vertMainShader, fragMonochromeShader)
 
-    val vPosition: Int = GLES20.glGetAttribLocation(mainShaderProgram, ShaderInputs.position)
-    val vTexCoord: Int = GLES20.glGetAttribLocation(mainShaderProgram, ShaderInputs.texCoord)
-
-    GLES20.glVertexAttribPointer(vPosition, 2, GLES20.GL_FLOAT, false, 0, verts)
-    GLES20.glVertexAttribPointer(vTexCoord, 2, GLES20.GL_FLOAT, false, 0, uvCoords)
-    GLES20.glEnableVertexAttribArray(vPosition)
-    GLES20.glEnableVertexAttribArray(vTexCoord)
+    for (shaderProgram <- List(mainShaderProgram, monochromeShaderProgram)) yield {
+      val vPosition: Int = GLES20.glGetAttribLocation(shaderProgram, ShaderInputs.position)
+      val vTexCoord: Int = GLES20.glGetAttribLocation(shaderProgram, ShaderInputs.texCoord)
+      GLES20.glVertexAttribPointer(vPosition, 2, GLES20.GL_FLOAT, false, 0, verts)
+      GLES20.glVertexAttribPointer(vTexCoord, 2, GLES20.GL_FLOAT, false, 0, uvCoords)
+      GLES20.glEnableVertexAttribArray(vPosition)
+      GLES20.glEnableVertexAttribArray(vTexCoord)
+    }
   }
 
 }
