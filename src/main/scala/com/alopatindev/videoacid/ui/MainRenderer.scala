@@ -67,12 +67,12 @@ class MainRenderer(val view: MainView) extends Object
   private val lightMonochromeColorRange: (Float, Float) = (0.51f, 1.0f)
   private val darkMonochromeColorRange: (Float, Float) = (0.0f, 0.5f)
 
-  private val screenRandFactor = 3.0f
+  private val screenRandFactor = 2.0f
   private val screenBounds = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f)
   private lazy val vertsApproxRandomizer = new ApproxRandomizer(
     minVector = screenBounds map { x => if (x < 0.0f) x * screenRandFactor else x },
     maxVector = screenBounds,
-    speed = 20.0f,
+    speed = 3.0f,
     updateInterval = 30 millis,
     randUpdateInterval = 5 seconds
   )
@@ -202,7 +202,7 @@ class MainRenderer(val view: MainView) extends Object
       surfaceTexture foreach { _.updateTexImage() }  // fetch a new frame from camera
       withBlend {
         val madnessLocal = ApproxRandomizer.madness
-        val alpha = Utils.clamp(1.0f - madnessLocal, 0.2f, 0.7f)
+        val alpha = Utils.clamp(1.0f - madnessLocal, 0.2f, 0.4f)
         renderNormal(alpha)
         renderLightMonochrome(madnessLocal)
         renderDarkMonochrome(madnessLocal)
