@@ -238,6 +238,8 @@ class MainRenderer(val view: MainView) extends Object
 
   override def onSurfaceChanged(unused: GL10, width: Int, height: Int): Unit = {
     logd(s"onSurfaceChanged")
+    logd(s"renderer: '${GLES20.glGetString(GLES20.GL_RENDERER)}'")
+    logd(s"extensions: '${GLES20.glGetString(GLES20.GL_EXTENSIONS)}'")
 
     if (!fbInitialized) {
       initFrameBufferTexture(width, height)
