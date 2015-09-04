@@ -56,8 +56,8 @@ class ApproxRandomizer(val minVector: Vector[Float],
       val randNum = Utils.clamp(randGauss, 0.0f, 1.0f)
       val value = a + randNum * scaledDelta
 
-      //assert(randNum >= 0.0f && randNum <= 1.0f, s"$randNum is out of [0 .. 1]")
-      //assert(value >= a && value <= b, s"value $value is out of [$a .. $b]")
+      assert(randNum >= 0.0f && randNum <= 1.0f, s"$randNum is out of [0 .. 1]")
+      assert(value >= a && value <= b, s"value $value is out of [$a .. $b]")
 
       value
     }

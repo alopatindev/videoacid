@@ -33,6 +33,13 @@ class MainView(context: Context, attrs: AttributeSet) extends GLSurfaceView(cont
     super.surfaceChanged(holder, format, width, height)
   }
 
+  override def onMeasure(width: Int, height: Int): Unit = {
+    logd(s"MainView.onMeasure $width, $height")
+    super.onMeasure(width, height)
+    val size: Int = Math.min(getMeasuredWidth(), getMeasuredHeight())
+    setMeasuredDimension(size, size)
+  }
+
   def release(): Unit = {
     logd("MainView.release")
     renderer.release()
