@@ -224,7 +224,8 @@ class MainRenderer(val view: MainView) extends Object
       surfaceTexture foreach { _.updateTexImage() }  // fetch a new frame from camera
       withBlend {
         val madnessLocal = ApproxRandomizer.madness
-        val alpha = Utils.clamp(1.0f - madnessLocal, 0.2f, 0.4f)
+        //val alpha = Utils.clamp(1.0f - madnessLocal, 0.2f, 0.4f)
+        val alpha = Utils.clamp(1.0f - madnessLocal * 4.0f, 0.2f, 1.0f)
         renderNormal(alpha)
         renderLightMonochrome(madnessLocal)
         renderDarkMonochrome(madnessLocal)

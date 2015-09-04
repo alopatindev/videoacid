@@ -17,8 +17,8 @@ void main() {
   float low = fLow;
   float high = fHigh;
   //float alpha = 0.2 * fMadness;
-  //float alpha = clamp(2.0 * fMadness, 0.0, 0.2);
-  float alpha = 0.2;
+  float alpha = clamp(4.0 * fMadness, 0.0, 0.2);
+  //float alpha = 0.2;
   //float alpha = clamp((1.0 - fMadness) * 0.6, 0.0, 0.6);
 
   if (bw < low || bw > high) {
