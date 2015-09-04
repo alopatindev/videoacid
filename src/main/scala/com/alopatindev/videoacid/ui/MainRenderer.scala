@@ -69,8 +69,22 @@ class MainRenderer(val view: MainView) extends Object
 
   private val screenRandFactor = 1.2f
   private val screenBounds = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f)
+  /*private val screenBounds = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,0.0f, -1.0f,0.0f,
+                                    1.0f,0.0f, -1.0f,0.0f, 1.0f,1.0f, -1.0f,1.0f)
+  private val screenBounds = Vector(1.0f,-1.0f, 0.0f,-1.0f,  1.0f,0.0f, 0.0f,0.0f,
+                                    1.0f,0.0f,  0.0f,0.0f,   1.0f,1.0f, 0.0f,1.0f,
+                                    0.0f,-1.0f, -1.0f,-1.0f, 0.0f,0.0f, -1.0f,0.0f,
+                                    0.0f,0.0f,  -1.0f,0.0f,  0.0f,1.0f, -1.0f,1.0f)*/
   private lazy val vertsApproxRandomizer = new ApproxRandomizer(
     minVector = screenBounds map { x => if (x < 0.0f) x * screenRandFactor else x },
+    /*minVector = (for {
+      a <- screenBounds.sliding(2, 2)
+      x = a(0)
+      y = a(1)
+      result = if (!(Math.abs(x) <= 0.001 && Math.abs(y) <= 0.001)) Vector(x * screenRandFactor, y * screenRandFactor)
+               else Vector(x, y)
+    } yield (result)).toVector.flatten,*/
+    //minVector = screenBounds,
     maxVector = screenBounds,
     speed = 1.3f,
     updateInterval = 30 millis,
@@ -93,7 +107,9 @@ class MainRenderer(val view: MainView) extends Object
     randUpdateInterval = 4 seconds
   )
 
-  private val VERTS_NUMBER = 8
+  private val VERTS_NUMBER = 4
+  private val VERTS_COMPONENTS_NUMBER = VERTS_NUMBER * 2
+
   private val BYTES_PER_INT = 4
   private val BYTES_PER_FLOAT = BYTES_PER_INT
 
@@ -104,16 +120,26 @@ class MainRenderer(val view: MainView) extends Object
   private def newFloatBuffer(length: Int): FloatBuffer = newBuffer(length * BYTES_PER_FLOAT).asFloatBuffer()
   private def newIntBuffer(length: Int): IntBuffer = newBuffer(length * BYTES_PER_INT).asIntBuffer()
 
-  private val verts: FloatBuffer = newFloatBuffer(VERTS_NUMBER)
+  private val verts: FloatBuffer = newFloatBuffer(VERTS_COMPONENTS_NUMBER)
   verts.put(Array(-1.0f,-1.0f, 1.0f,-1.0f, -1.0f,1.0f, 1.0f,1.0f))
   verts.position(0)
 
-  private val fbVerts: FloatBuffer = newFloatBuffer(VERTS_NUMBER)
+  private val fbVerts: FloatBuffer = newFloatBuffer(VERTS_COMPONENTS_NUMBER /* * 2*/)
   updateFbVerts()
 
-  private val uvCoords: FloatBuffer = newFloatBuffer(VERTS_NUMBER)
+  private val uvCoords: FloatBuffer = newFloatBuffer(VERTS_COMPONENTS_NUMBER)
   uvCoords.put(Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.0f, 0.0f,0.0f))
   uvCoords.position(0)
+
+  private val fbUvCoords: FloatBuffer = newFloatBuffer(VERTS_COMPONENTS_NUMBER /* * 2*/)
+  fbUvCoords.put(Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.0f, 0.0f,0.0f))
+  /*fbUvCoords.put(Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.5f, 0.0f,0.5f,
+                       1.0f,0.5f, 0.0f,0.5f, 1.0f,0.0f, 0.0f,0.0f))*/
+  /*fbUvCoords.put(Array(1.0f,1.0f, 0.5f,1.0f, 1.0f,0.5f, 0.5f,0.5f,
+                       1.0f,0.5f, 0.5f,0.5f, 1.0f,0.0f, 0.5f,0.0f,
+                       0.5f,1.0f, 0.0f,1.0f, 0.5f,0.5f, 0.0f,0.5f,
+                       0.5f,0.5f, 0.0f,0.5f, 0.5f,0.0f, 0.0f,0.0f))*/
+  fbUvCoords.position(0)
 
   private def startCamera(surfaceWidth: Int, surfaceHeight: Int): Unit = {
     logi(s"startCamera thread=${ConcurrencyUtils.currentThreadId()} (${surfaceWidth}x${surfaceHeight})")
@@ -278,7 +304,11 @@ class MainRenderer(val view: MainView) extends Object
         case _ => throw new IllegalArgumentException
       }
     }
-    GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4)
+
+    val vertsNumber = if (shaderProgram == fbTextureShaderProgram) VERTS_NUMBER /* * 2*/
+                      else VERTS_NUMBER
+
+    GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, vertsNumber)
   }
 
   private def withBlend(f: => Unit): Unit = {
@@ -395,8 +425,10 @@ class MainRenderer(val view: MainView) extends Object
       val vTexCoord: Int = GLES20.glGetAttribLocation(shaderProgram, ShaderInputs.texCoord)
       val v = if (shaderProgram == fbTextureShaderProgram) fbVerts
               else verts
+      val uv = if (shaderProgram == fbTextureShaderProgram) fbUvCoords
+               else uvCoords
       GLES20.glVertexAttribPointer(vPosition, 2, GLES20.GL_FLOAT, false, 0, v)
-      GLES20.glVertexAttribPointer(vTexCoord, 2, GLES20.GL_FLOAT, false, 0, uvCoords)
+      GLES20.glVertexAttribPointer(vTexCoord, 2, GLES20.GL_FLOAT, false, 0, uv)
       GLES20.glEnableVertexAttribArray(vPosition)
       GLES20.glEnableVertexAttribArray(vTexCoord)
     }

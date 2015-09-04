@@ -7,6 +7,8 @@ void main() {
   vec2 pos = vPosition * vec2(-1.0, 1.0);
   //pos *= vec2(0.62, 1.0);
   pos *= vec2(1.0, 1.6);
+//  pos *= vec2(2.0, 2.0);
+//  pos += vec2(0.5, 1.0);
 
   gl_Position = vec4(pos, 0.0, 1.0);
 }
