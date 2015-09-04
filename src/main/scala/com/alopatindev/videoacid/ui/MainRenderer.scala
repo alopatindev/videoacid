@@ -105,10 +105,6 @@ class MainRenderer(val view: MainView) extends Object
   private def newIntBuffer(length: Int): IntBuffer = newBuffer(length * BYTES_PER_INT).asIntBuffer()
 
   private val verts: FloatBuffer = newFloatBuffer(VERTS_NUMBER)
-  //verts.put(screenBounds.toArray)
-  //verts.put(Array(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f))
-  //verts.put(Array(-1.0f,1.0f, 1.0f,1.0f, -1.0f,-1.0f, 1.0f,-1.0f))
-  //verts.put(Array(1.0f,1.0f, -1.0f,1.0f, 1.0f,-1.0f, -1.0f,-1.0f))
   verts.put(Array(-1.0f,-1.0f, 1.0f,-1.0f, -1.0f,1.0f, 1.0f,1.0f))
   verts.position(0)
 
@@ -315,17 +311,12 @@ class MainRenderer(val view: MainView) extends Object
 
     GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE)
     GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
-
-    // GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST)
-    // GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST)
     GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
     GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
 
     surfaceTexture = Some(new SurfaceTexture(cameraTexture(0)))
     surfaceTexture foreach { _.setOnFrameAvailableListener(this) }
 
-    // GLES20.glClearColor(0.5f, 0.5f, 0.5f, 1.0f)
-    //GLES20.glClearColor(1.0f, 1.0f, 0.0f, 1.0f)
     GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
   }
 
@@ -344,11 +335,6 @@ class MainRenderer(val view: MainView) extends Object
     GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE)
     GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR)
     GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR)
-
-    /* GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
-    GLES20.glTexParameterf(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
-    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_REPEAT);
-    GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_REPEAT); */
 
     GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f)
 
