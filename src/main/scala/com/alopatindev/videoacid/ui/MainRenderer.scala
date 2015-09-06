@@ -67,25 +67,14 @@ class MainRenderer(val view: MainView) extends Object
   private val lightMonochromeColorRange: (Float, Float) = (0.51f, 1.0f)
   private val darkMonochromeColorRange: (Float, Float) = (0.0f, 0.5f)
 
+  private val FB_RECTS = 2
+
   private val screenRandFactor = 1.2f
-  private val screenBounds = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,1.0f, -1.0f,1.0f)
-  /*private val screenBounds = Vector(1.0f,-1.0f, -1.0f,-1.0f, 1.0f,0.0f, -1.0f,0.0f,
-                                    1.0f,0.0f, -1.0f,0.0f, 1.0f,1.0f, -1.0f,1.0f)
-  private val screenBounds = Vector(1.0f,-1.0f, 0.0f,-1.0f,  1.0f,0.0f, 0.0f,0.0f,
-                                    1.0f,0.0f,  0.0f,0.0f,   1.0f,1.0f, 0.0f,1.0f,
-                                    0.0f,-1.0f, -1.0f,-1.0f, 0.0f,0.0f, -1.0f,0.0f,
-                                    0.0f,0.0f,  -1.0f,0.0f,  0.0f,1.0f, -1.0f,1.0f)*/
-  private lazy val vertsApproxRandomizer = new ApproxRandomizer(
-    minVector = screenBounds map { x => if (x < 0.0f) x * screenRandFactor else x },
-    /*minVector = (for {
-      a <- screenBounds.sliding(2, 2)
-      x = a(0)
-      y = a(1)
-      result = if (!(Math.abs(x) <= 0.001 && Math.abs(y) <= 0.001)) Vector(x * screenRandFactor, y * screenRandFactor)
-               else Vector(x, y)
-    } yield (result)).toVector.flatten,*/
-    //minVector = screenBounds,
-    maxVector = screenBounds,
+  private val fbVertsInitial: Array[Float] = MainRenderer.vertsGen(rects=FB_RECTS).toArray
+  private val fbVertsInitialVector: Vector[Float] = fbVertsInitial.toVector
+  private lazy val fbVertsApproxRandomizer = new ApproxRandomizer(
+    minVector = fbVertsInitialVector map { x => if (x < 0.0f) x * screenRandFactor else x },
+    maxVector = fbVertsInitialVector,
     speed = 1.3f,
     updateInterval = 30 millis,
     randUpdateInterval = 5 seconds
@@ -107,9 +96,6 @@ class MainRenderer(val view: MainView) extends Object
     randUpdateInterval = 4 seconds
   )
 
-  private val VERTS_NUMBER = 4
-  private val VERTS_COMPONENTS_NUMBER = VERTS_NUMBER * 2
-
   private val BYTES_PER_INT = 4
   private val BYTES_PER_FLOAT = BYTES_PER_INT
 
@@ -120,25 +106,22 @@ class MainRenderer(val view: MainView) extends Object
   private def newFloatBuffer(length: Int): FloatBuffer = newBuffer(length * BYTES_PER_FLOAT).asFloatBuffer()
   private def newIntBuffer(length: Int): IntBuffer = newBuffer(length * BYTES_PER_INT).asIntBuffer()
 
-  private val verts: FloatBuffer = newFloatBuffer(VERTS_COMPONENTS_NUMBER)
-  verts.put(Array(-1.0f,-1.0f, 1.0f,-1.0f, -1.0f,1.0f, 1.0f,1.0f))
+  private val vertsInitial: Array[Float] = MainRenderer.vertsGen(rects=1).toArray
+  private val verts: FloatBuffer = newFloatBuffer(vertsInitial.length)
+  verts.put(vertsInitial)
   verts.position(0)
 
-  private val fbVerts: FloatBuffer = newFloatBuffer(VERTS_COMPONENTS_NUMBER /* * 2*/)
+  private val fbVerts: FloatBuffer = newFloatBuffer(fbVertsInitial.length)
   updateFbVerts()
 
-  private val uvCoords: FloatBuffer = newFloatBuffer(VERTS_COMPONENTS_NUMBER)
-  uvCoords.put(Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.0f, 0.0f,0.0f))
+  private val uvCoordsInitial: Array[Float] = MainRenderer.uvGen(rects=1).toArray
+  private val uvCoords: FloatBuffer = newFloatBuffer(uvCoordsInitial.length)
+  uvCoords.put(uvCoordsInitial)
   uvCoords.position(0)
 
-  private val fbUvCoords: FloatBuffer = newFloatBuffer(VERTS_COMPONENTS_NUMBER /* * 2*/)
-  fbUvCoords.put(Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.0f, 0.0f,0.0f))
-  /*fbUvCoords.put(Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.5f, 0.0f,0.5f,
-                       1.0f,0.5f, 0.0f,0.5f, 1.0f,0.0f, 0.0f,0.0f))*/
-  /*fbUvCoords.put(Array(1.0f,1.0f, 0.5f,1.0f, 1.0f,0.5f, 0.5f,0.5f,
-                       1.0f,0.5f, 0.5f,0.5f, 1.0f,0.0f, 0.5f,0.0f,
-                       0.5f,1.0f, 0.0f,1.0f, 0.5f,0.5f, 0.0f,0.5f,
-                       0.5f,0.5f, 0.0f,0.5f, 0.5f,0.0f, 0.0f,0.0f))*/
+  private val fbUvInitial: Array[Float] = MainRenderer.uvGen(rects=FB_RECTS).toArray
+  private val fbUvCoords: FloatBuffer = newFloatBuffer(fbUvInitial.length)
+  fbUvCoords.put(fbUvInitial)
   fbUvCoords.position(0)
 
   private def startCamera(surfaceWidth: Int, surfaceHeight: Int): Unit = {
@@ -308,8 +291,8 @@ class MainRenderer(val view: MainView) extends Object
       }
     }
 
-    val vertsNumber = if (shaderProgram == fbTextureShaderProgram) VERTS_NUMBER /* * 2*/
-                      else VERTS_NUMBER
+    val vertsNumber = if (shaderProgram == fbTextureShaderProgram) fbVertsInitial.length / 2
+                      else vertsInitial.length / 2
 
     GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, vertsNumber)
   }
@@ -332,7 +315,7 @@ class MainRenderer(val view: MainView) extends Object
   }
 
   private def updateFbVerts(): Unit = {
-    fbVerts.put(vertsApproxRandomizer.getCurrentArray())
+    fbVerts.put(fbVertsApproxRandomizer.getCurrentArray())
     fbVerts.position(0)
   }
 
@@ -435,6 +418,96 @@ class MainRenderer(val view: MainView) extends Object
       GLES20.glEnableVertexAttribArray(vPosition)
       GLES20.glEnableVertexAttribArray(vTexCoord)
     }
+  }
+
+}
+
+object MainRenderer {
+
+  def rect(x: Float, y: Float, width: Float): List[Float] = List(
+    x,y,       x+width,y,
+    x,y+width, x+width,y+width
+  )
+  /*def rect(x: Float, y: Float, width: Float): List[Float] = List(
+    x+width,y+width, x,y+width,
+    x+width,y,       x,y)*/
+
+
+  /*def gen(rects: Int, low: Float, high: Float): List[Float] = {
+    val rectVertsNumber = 4
+    val vertComponentsNumber = 2
+    val rectVertsWithComponentsNumber = rectVertsNumber * vertComponentsNumber
+
+    val cols: Int = Math.sqrt(rects).toInt
+    val rows = cols
+    //assert(cols * rows == rects)
+
+    val width = high - low
+    val rectWidth: Float = width / cols
+    val coords = for {
+      col <- 0 until cols
+      row <- 0 until rows
+      coord <- rect(col, row, rectWidth)
+    } yield (coord)
+    val coordsWithRepeats = coords
+      .sliding(rectVertsWithComponentsNumber, rectVertsNumber)
+      .flatten
+      .sliding(rectVertsWithComponentsNumber, rectVertsWithComponentsNumber)
+      .flatten
+    val ls = coordsWithRepeats.toList
+    ls
+  }*/
+
+  def uvGen(rects: Int): List[Float] = {
+    val rectVertsNumber = 4
+    val vertComponentsNumber = 2
+    val rectVertsWithComponentsNumber = rectVertsNumber * vertComponentsNumber
+
+    val cols: Int = Math.sqrt(rects).toInt
+    val rows = cols
+    //assert(cols * rows == rects)
+
+    // Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.0f, 0.0f,0.0f)
+    /*def rect(x: Float, y: Float, width: Float): List[Float] = List(
+      x+width,y+width, x,y+width,
+      x+width,y,       x,y)*/
+
+    val width: Float = 1.0f / cols
+    val coords = for {
+      col <- 0 until cols
+      row <- 0 until rows
+      coord <- rect(col, row, width)
+    } yield (coord)
+    val coordsWithRepeats = coords
+      .sliding(rectVertsWithComponentsNumber, rectVertsNumber)
+      .flatten
+      .sliding(rectVertsWithComponentsNumber, rectVertsWithComponentsNumber)
+      .flatten
+    val ls = coordsWithRepeats.toList
+    ls
+  }
+
+  def vertsGen(rects: Int): List[Float] = {
+    val rectVertsNumber = 4
+    val vertComponentsNumber = 2
+
+    val cols: Int = Math.sqrt(rects).toInt
+    val rows = cols
+    //assert(cols * rows == rects)
+                                                        //verts.put(Array(-1.0f,-1.0f, 1.0f,-1.0f, -1.0f,1.0f, 1.0f,1.0f))
+    /*def rect(x: Float, y: Float, width: Float): List[Float] = List(
+      x,y,       x+width,y,
+      x,y+width, x+width,y+width
+    )*/
+    val width: Float = 2.0f / cols
+    val coords = for {
+      col <- (-1.0f) until 1.0f by width
+      row <- (-1.0f) until 1.0f by width
+      coord <- rect(col, row, width)
+    } yield (coord)
+    val coordsWithRepeats = coords.sliding(8, 4).flatten.sliding(8, 8).flatten
+    val ls = coordsWithRepeats.toList
+    ls
   }
 
 }
