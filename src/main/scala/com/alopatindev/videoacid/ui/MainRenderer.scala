@@ -8,6 +8,7 @@ import android.opengl.GLES11Ext
 import android.opengl.GLES20
 
 import com.alopatindev.videoacid.{ApproxRandomizer, Utils}
+import com.alopatindev.videoacid.Logs.{logd, loge, logi}
 
 import language.postfixOps
 
@@ -25,7 +26,6 @@ class MainRenderer(val view: MainView) extends Object
   import android.content.Context
 
   import com.alopatindev.videoacid.ConcurrencyUtils
-  import com.alopatindev.videoacid.Logs.{logd, loge, logi}
   import com.alopatindev.videoacid.Utils
 
   implicit val ctx: Context = view.getContext()
@@ -67,13 +67,15 @@ class MainRenderer(val view: MainView) extends Object
   private val lightMonochromeColorRange: (Float, Float) = (0.51f, 1.0f)
   private val darkMonochromeColorRange: (Float, Float) = (0.0f, 0.5f)
 
-  private val FB_RECTS = 2
+  private val FB_RECTS = 4
+  //private val FB_RECTS = 1
 
   private val screenRandFactor = 1.2f
   private val fbVertsInitial: Array[Float] = MainRenderer.vertsGen(rects=FB_RECTS).toArray
   private val fbVertsInitialVector: Vector[Float] = fbVertsInitial.toVector
   private lazy val fbVertsApproxRandomizer = new ApproxRandomizer(
     minVector = fbVertsInitialVector map { x => if (x < 0.0f) x * screenRandFactor else x },
+    //minVector = fbVertsInitialVector map { x => x * screenRandFactor },
     maxVector = fbVertsInitialVector,
     speed = 1.3f,
     updateInterval = 30 millis,
@@ -204,6 +206,7 @@ class MainRenderer(val view: MainView) extends Object
       renderFbTexture()  // rendering previous fb texture to screen
 
       setOutputToFrameBuffer()
+    //GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT)
       surfaceTexture foreach { _.updateTexImage() }  // fetch a new frame from camera
       withBlend {
         val madnessLocal = ApproxRandomizer.madness
@@ -293,6 +296,7 @@ class MainRenderer(val view: MainView) extends Object
 
     val vertsNumber = if (shaderProgram == fbTextureShaderProgram) fbVertsInitial.length / 2
                       else vertsInitial.length / 2
+    //logd(s"vertsNumber=$vertsNumber")
 
     GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, vertsNumber)
   }
@@ -428,10 +432,6 @@ object MainRenderer {
     x,y,       x+width,y,
     x,y+width, x+width,y+width
   )
-  /*def rect(x: Float, y: Float, width: Float): List[Float] = List(
-    x+width,y+width, x,y+width,
-    x+width,y,       x,y)*/
-
 
   /*def gen(rects: Int, low: Float, high: Float): List[Float] = {
     val rectVertsNumber = 4
@@ -467,23 +467,14 @@ object MainRenderer {
     val rows = cols
     //assert(cols * rows == rects)
 
-    // Array(1.0f,1.0f, 0.0f,1.0f, 1.0f,0.0f, 0.0f,0.0f)
-    /*def rect(x: Float, y: Float, width: Float): List[Float] = List(
-      x+width,y+width, x,y+width,
-      x+width,y,       x,y)*/
-
     val width: Float = 1.0f / cols
     val coords = for {
-      col <- 0 until cols
-      row <- 0 until rows
+      col <- 0.0f to 1.0f by width
+      row <- 0.0f to 1.0f by width
       coord <- rect(col, row, width)
     } yield (coord)
     val coordsWithRepeats = coords
-      .sliding(rectVertsWithComponentsNumber, rectVertsNumber)
-      .flatten
-      .sliding(rectVertsWithComponentsNumber, rectVertsWithComponentsNumber)
-      .flatten
-    val ls = coordsWithRepeats.toList
+    val ls: List[Float] = coordsWithRepeats.toList
     ls
   }
 
@@ -494,19 +485,19 @@ object MainRenderer {
     val cols: Int = Math.sqrt(rects).toInt
     val rows = cols
     //assert(cols * rows == rects)
-                                                        //verts.put(Array(-1.0f,-1.0f, 1.0f,-1.0f, -1.0f,1.0f, 1.0f,1.0f))
-    /*def rect(x: Float, y: Float, width: Float): List[Float] = List(
-      x,y,       x+width,y,
-      x,y+width, x+width,y+width
-    )*/
     val width: Float = 2.0f / cols
     val coords = for {
-      col <- (-1.0f) until 1.0f by width
-      row <- (-1.0f) until 1.0f by width
+      col <- (-1.0f) to 1.0f by width
+      row <- (-1.0f) to 1.0f by width
       coord <- rect(col, row, width)
     } yield (coord)
-    val coordsWithRepeats = coords.sliding(8, 4).flatten.sliding(8, 8).flatten
-    val ls = coordsWithRepeats.toList
+    val coordsWithRepeats = coords
+    val ls: List[Float] = coordsWithRepeats
+      .indices
+      .zip(coordsWithRepeats)
+      .map { case (index: Int, item: Float) => if (index % 2 == 0) {logi("--\n")} ; logi(s"wtf $index: $item"); item }
+      .toList
+    logd(s"len ${coordsWithRepeats.length} ${ls.length}")
     ls
   }
 
