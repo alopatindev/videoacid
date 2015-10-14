@@ -67,8 +67,8 @@ class MainRenderer(val view: MainView) extends Object
   private val lightMonochromeColorRange: (Float, Float) = (0.51f, 1.0f)
   private val darkMonochromeColorRange: (Float, Float) = (0.0f, 0.5f)
 
-  private val FB_RECTS = 4
-  //private val FB_RECTS = 1
+  //private val FB_RECTS = 4
+  private val FB_RECTS = 1
 
   private val screenRandFactor = 1.2f
   private val fbVertsInitial: Array[Float] = MainRenderer.vertsGen(rects=FB_RECTS).toArray
@@ -296,7 +296,7 @@ class MainRenderer(val view: MainView) extends Object
 
     val vertsNumber = if (shaderProgram == fbTextureShaderProgram) fbVertsInitial.length / 2
                       else vertsInitial.length / 2
-    //logd(s"vertsNumber=$vertsNumber")
+    //logi(s"vertsNumber=$vertsNumber")
 
     GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, vertsNumber)
   }
@@ -428,77 +428,37 @@ class MainRenderer(val view: MainView) extends Object
 
 object MainRenderer {
 
-  def rect(x: Float, y: Float, width: Float): List[Float] = List(
+  val rectVerts = 4
+  val rectVertComponents = 2
+  val rectItems = rectVerts * rectVertComponents
+
+  private def rect(x: Float, y: Float, width: Float): List[Float] = List(
     x,y,       x+width,y,
     x,y+width, x+width,y+width
   )
 
-  /*def gen(rects: Int, low: Float, high: Float): List[Float] = {
-    val rectVertsNumber = 4
-    val vertComponentsNumber = 2
-    val rectVertsWithComponentsNumber = rectVertsNumber * vertComponentsNumber
-
+  private def gen(rects: Int, low: Float, high: Float): List[Float] = {
     val cols: Int = Math.sqrt(rects).toInt
     val rows = cols
-    //assert(cols * rows == rects)
 
-    val width = high - low
-    val rectWidth: Float = width / cols
-    val coords = for {
-      col <- 0 until cols
-      row <- 0 until rows
-      coord <- rect(col, row, rectWidth)
-    } yield (coord)
-    val coordsWithRepeats = coords
-      .sliding(rectVertsWithComponentsNumber, rectVertsNumber)
-      .flatten
-      .sliding(rectVertsWithComponentsNumber, rectVertsWithComponentsNumber)
-      .flatten
-    val ls = coordsWithRepeats.toList
-    ls
-  }*/
+    val rectWidth: Float = Math.abs(low) + Math.abs(high)
 
-  def uvGen(rects: Int): List[Float] = {
-    val rectVertsNumber = 4
-    val vertComponentsNumber = 2
-    val rectVertsWithComponentsNumber = rectVertsNumber * vertComponentsNumber
+    val width: Float = rectWidth / cols.toFloat
+    val coords: List[Float] = {
+      for {
+        col <- low until high by width
+        row <- low until high by width
+        coord <- rect(col, row, width)
+      } yield (coord)
+    }.toList
 
-    val cols: Int = Math.sqrt(rects).toInt
-    val rows = cols
-    //assert(cols * rows == rects)
+    assert(coords.length == rectItems * cols * rows)
 
-    val width: Float = 1.0f / cols
-    val coords = for {
-      col <- 0.0f to 1.0f by width
-      row <- 0.0f to 1.0f by width
-      coord <- rect(col, row, width)
-    } yield (coord)
-    val coordsWithRepeats = coords
-    val ls: List[Float] = coordsWithRepeats.toList
-    ls
+    coords
   }
 
-  def vertsGen(rects: Int): List[Float] = {
-    val rectVertsNumber = 4
-    val vertComponentsNumber = 2
+  def uvGen(rects: Int): List[Float] = gen(rects, low = 0.0f, high = 1.0f)
 
-    val cols: Int = Math.sqrt(rects).toInt
-    val rows = cols
-    //assert(cols * rows == rects)
-    val width: Float = 2.0f / cols
-    val coords = for {
-      col <- (-1.0f) to 1.0f by width
-      row <- (-1.0f) to 1.0f by width
-      coord <- rect(col, row, width)
-    } yield (coord)
-    val coordsWithRepeats = coords
-    val ls: List[Float] = coordsWithRepeats
-      .indices
-      .zip(coordsWithRepeats)
-      .map { case (index: Int, item: Float) => if (index % 2 == 0) {logi("--\n")} ; logi(s"wtf $index: $item"); item }
-      .toList
-    logd(s"len ${coordsWithRepeats.length} ${ls.length}")
-    ls
-  }
+  def vertsGen(rects: Int): List[Float] = gen(rects, low = -1.0f, high = 1.0f)
 
 }
