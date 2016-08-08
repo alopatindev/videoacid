@@ -77,7 +77,7 @@ class MainRenderer(val view: MainView) extends Object
     minVector = fbVertsInitialVector map { x => if (x < 0.0f) x * screenRandFactor else x },
     //minVector = fbVertsInitialVector map { x => x * screenRandFactor },
     maxVector = fbVertsInitialVector,
-    speed = 1.3f,
+    speed = 2.3f,
     updateInterval = 30 millis,
     randUpdateInterval = 5 seconds
   )
