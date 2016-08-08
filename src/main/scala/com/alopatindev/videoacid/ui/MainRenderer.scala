@@ -67,7 +67,6 @@ class MainRenderer(val view: MainView) extends Object
   private val lightMonochromeColorRange: (Float, Float) = (0.51f, 1.0f)
   private val darkMonochromeColorRange: (Float, Float) = (0.0f, 0.5f)
 
-  //private val FB_RECTS = 4
   private val FB_RECTS = 1
 
   private val screenRandFactor = 1.2f
@@ -75,7 +74,7 @@ class MainRenderer(val view: MainView) extends Object
   private val fbVertsInitialVector: Vector[Float] = fbVertsInitial.toVector
   private lazy val fbVertsApproxRandomizer = new ApproxRandomizer(
     minVector = fbVertsInitialVector map { x => if (x < 0.0f) x * screenRandFactor else x },
-    //minVector = fbVertsInitialVector map { x => x * screenRandFactor },
+    // minVector = fbVertsInitialVector map { x => x * screenRandFactor },
     maxVector = fbVertsInitialVector,
     speed = 2.3f,
     updateInterval = 30 millis,
@@ -206,11 +205,10 @@ class MainRenderer(val view: MainView) extends Object
       renderFbTexture()  // rendering previous fb texture to screen
 
       setOutputToFrameBuffer()
-    //GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT)
+      // GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT)
       surfaceTexture foreach { _.updateTexImage() }  // fetch a new frame from camera
       withBlend {
         val madnessLocal = ApproxRandomizer.madness
-        //val alpha = Utils.clamp(1.0f - madnessLocal, 0.2f, 0.4f)
         val alpha = Utils.clamp(1.0f - madnessLocal * 4.0f, 0.2f, 1.0f)
         renderNormal(alpha)
         renderLightMonochrome(madnessLocal)
@@ -296,7 +294,6 @@ class MainRenderer(val view: MainView) extends Object
 
     val vertsNumber = if (shaderProgram == fbTextureShaderProgram) fbVertsInitial.length / 2
                       else vertsInitial.length / 2
-    //logi(s"vertsNumber=$vertsNumber")
 
     GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, vertsNumber)
   }
@@ -433,8 +430,8 @@ object MainRenderer {
   val rectItems = rectVerts * rectVertComponents
 
   private def rect(x: Float, y: Float, width: Float): List[Float] = List(
-    x,y,       x+width,y,
-    x,y+width, x+width,y+width
+    x, y,         x + width, y,
+    x, y + width, x + width, y + width
   )
 
   private def gen(rects: Int, low: Float, high: Float): List[Float] = {
